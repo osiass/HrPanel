@@ -1,0 +1,145 @@
+﻿@page "/izinler"
+@attribute [Authorize]
+@using HrPanel.Data
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using HrPanel.Models
+@using HrPanel.Services
+@inject LeaveService LeaveService
+@inject EmployeeService EmployeeService
+
+<div class="container mt-4">
+    <h3 class="fw-bold mb-4"><i class="bi bi-calendar-check"></i> İzin Talepleri</h3>
+
+    <div class="row">
+        <!-- İZİN TALEBİ FORMU -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-dark text-white">Talep Oluştur</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Personel</label>
+                        <select class="form-select" @bind="newLeave.EmployeeId">
+                            <option value="0">Personel Seçiniz...</option>
+                            @foreach (var emp in employeeList)
+                            {
+                                <option value="@emp.Id">@emp.FullName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Başlangıç</label>
+                        <input type="date" class="form-control" @bind="newLeave.StartDate" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Bitiş</label>
+                        <input type="date" class="form-control" @bind="newLeave.EndDate" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Açıklama</label>
+                        <textarea class="form-control" @bind="newLeave.Description"></textarea>
+                    </div>
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger py-2 mt-2" style="font-size: 0.85rem;">
+                            <i class="bi bi-exclamation-triangle-fill"></i> @errorMessage
+                        </div>
+                    }
+
+                    <button class="btn btn-primary w-100 mt-2" @onclick="SaveLeave">
+                        <i class="bi bi-send"></i> İzin Talebi Oluştur
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- İZİN LİSTESİ -->
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Personel</th>
+                            <th>Tarih Aralığı</th>
+                            <th>Gün</th>
+                            <th>Durum</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var leave in leaveList)
+                        {
+                            <tr>
+                                <td>@leave.Employee?.FullName</td>
+                                <td><small>@leave.StartDate.ToShortDateString() - @leave.EndDate.ToShortDateString()</small></td>
+                                <td>@((leave.EndDate - leave.StartDate).Days) Gün</td>
+                                <td>
+                                    <span class="badge @(leave.Status == LeaveStatus.Approved ? "bg-success" : "bg-warning")">
+                                        @leave.Status
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (leave.Status == LeaveStatus.Pending)
+                                    {
+                                        <button class="btn btn-sm btn-outline-success" @onclick="() => UpdateStatus(leave.Id, LeaveStatus.Approved)">Onayla</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Leave> leaveList = new();
+    private List<Employee> employeeList = new();
+    private Leave newLeave = new Leave { StartDate = DateTime.Now, EndDate = DateTime.Now.AddDays(1) };
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    public async Task LoadAsync()
+    {
+        // Servis üzerinden izinleri ve personelleri çekiyoruz
+        leaveList = await LeaveService.GetAllLeavesAsync();
+        employeeList = await EmployeeService.GetAllEmployeesAsync();
+        StateHasChanged();
+    }
+
+    public async Task SaveLeave()
+    {
+        errorMessage = "";
+
+        if (string.IsNullOrWhiteSpace(newLeave.Description) || newLeave.EmployeeId == 0)
+        {
+            return;
+        }
+
+        if (newLeave.EndDate < newLeave.StartDate)
+        {
+            errorMessage = "Bitiş tarihi başlangıç tarihinden önce olamaz";
+            return;
+        }
+
+        else
+        {
+            await LeaveService.AddLeaveAsync(newLeave);
+
+            newLeave = new Leave { StartDate = DateTime.Now, EndDate = DateTime.Now.AddDays(1) };
+            await LoadAsync();
+        }
+
+    }
+
+    public async Task UpdateStatus(int id, LeaveStatus newStatus)
+    {
+        await LeaveService.UpdateLeaveStatusAsync(id, newStatus);
+        await LoadAsync();
+    }
+}

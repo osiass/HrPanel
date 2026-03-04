@@ -1,0 +1,98 @@
+﻿@page "/raporlar"
+@attribute [Authorize]
+@using HrPanel.Models
+@using HrPanel.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@inject ReportService ReportService
+@inject DepartmentService DeptService
+
+<div class="container mt-4">
+    <h3 class="fw-bold mb-4"><i class="bi bi-file-earmark-bar-graph"></i> Personel Raporları</h3>
+
+    <!-- FİLTRELEME ALANI -->
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">İsimle Ara</label>
+                    <input type="text" class="form-control" @bind="searchTerm" placeholder="Personel adı..." />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Departman</label>
+                    <select class="form-select" @bind="selectedDeptId">
+                        <option value="0">Tümü</option>
+                        @foreach (var d in departments)
+                        {
+                            <option value="@d.Id">@d.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Min. Maaş</label>
+                    <input type="number" class="form-control" @bind="minSalary" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" @onclick="Search">
+                        <i class="bi bi-search"></i> Filtrele
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SONUÇ TABLOSU -->
+    <div class="card shadow-sm border-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Ad Soyad</th>
+                    <th>Departman</th>
+                    <th>Pozisyon</th>
+                    <th>Maaş</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (filteredEmployees != null && filteredEmployees.Any())
+                {
+                    @foreach (var emp in filteredEmployees)
+                    {
+                        <tr>
+                            <td>@emp.FullName</td>
+                            <td>@emp.Department?.Name</td>
+                            <td>@emp.Position?.Name</td>
+                            <td>@emp.Salary.ToString("C2")</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">Arama kriterlerine uygun personel bulunamadı.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    List<Employee> filteredEmployees = new();
+    List<Department> departments = new();
+    string searchTerm = "";
+    int? selectedDeptId = null;
+    decimal? minSalary = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Sayfa açıldığında departman listesini yükle
+        departments = await DeptService.GetAllDepartmentsAsync();
+        // Başlangıçta tüm personelleri göster
+        await Search();
+    }
+
+    public async Task Search()
+    {
+        filteredEmployees = await ReportService.GetFilteredEmployeesAsync(searchTerm, selectedDeptId, minSalary);
+    }
+}
