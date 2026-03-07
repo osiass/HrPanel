@@ -16,7 +16,20 @@ namespace HrPanel.Services
         public async Task<User?> LoginAsync(string username, string password)
         {
             return await _context.Users
+                .Include(u => u.Employee)
                 .FirstOrDefaultAsync(u => u.Username == username && u.Password == password);
+        }
+
+        public async Task<bool> ChangePasswordAsync(int employeeId, string newPassword)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.EmployeeId == employeeId);
+            if (user != null)
+            {
+                user.Password = newPassword;
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            return false;
         }
     }
 }

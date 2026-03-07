@@ -1,0 +1,172 @@
+﻿@page "/profilim"
+@attribute [Authorize]
+@using HrPanel.Models
+@using HrPanel.Services
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject EmployeeService EmpService
+@inject DocumentService DocService
+@inject AuthService AuthService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="container-fluid animate__animated animate__fadeIn">
+    <h3 class="fw-bold mb-4">Profil Bilgilerim</h3>
+
+    @if (myProfile == null)
+    {
+        <div class="text-center mt-5 py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Profiliniz hazırlanıyor...</p>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <!--ÖZET -->
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 text-center p-4 mb-4 rounded-4 bg-white">
+                    <img src="https://ui-avatars.com/api/?name=@myProfile.FullName&size=128&background=4e73df&color=fff"
+                         class="rounded-circle shadow mb-3 mx-auto" width="100" />
+                    <h4 class="fw-bold mb-1">@myProfile.FullName</h4>
+                    <p class="text-muted mb-3">@myProfile.Position?.Name</p>
+                    <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">@myProfile.Role</div>
+                    <hr class="my-4" />
+                    <div class="text-start">
+                        <div class="mb-2 small"><i class="bi bi-envelope me-2"></i> @myProfile.Email</div>
+                        <div class="mb-2 small"><i class="bi bi-building me-2"></i> @myProfile.Department?.Name</div>
+                    </div>
+                </div>
+
+                @*Şifre Güncelleme *@
+                <div class="card shadow-sm border-0 rounded-4 bg-white mt-4">
+                    <div class="card-body p-4 text-start">
+                        <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-shield-lock me-2 text-primary"></i>Güvenlik Ayarları</h6>
+                        <div class="mb-3">
+                            <label class="small text-muted fw-bold">YENİ ŞİFRE</label>
+                            <input type="password" class="form-control bg-light border-0" @bind="newPassword" placeholder="Yeni şifreniz" />
+                        </div>
+                        <button class="btn btn-dark btn-sm w-100 fw-bold py-2" @onclick="UpdatePassword">Şifreyi Güncelle</button>
+
+                        @if (passwordSuccess)
+                        {
+                            <div class="alert alert-success py-2 mt-3 small border-0">
+                                <i class="bi bi-check-circle-fill me-2"></i> Şifreniz güncellendi.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!--DETAYLI SEKMELER -->
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0 rounded-4 bg-white">
+                    <div class="card-header bg-transparent border-0 pt-3">
+                        <ul class="nav nav-pills card-header-pills px-3">
+                            <li class="nav-item">
+                                <button class="nav-link @(activeTab == "izin" ? "active shadow-sm" : "text-dark")" @onclick='() => activeTab = "izin"'>İzinlerim</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link @(activeTab == "ekip" ? "active shadow-sm" : "text-dark")" @onclick='() => activeTab = "ekip"'>Organizasyon</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link @(activeTab == "dosya" ? "active shadow-sm" : "text-dark")" @onclick='() => activeTab = "dosya"'>Belgelerim</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body p-4">
+                        @if (activeTab == "izin")
+                        {
+                            <table class="table table-hover">
+                                <thead class="small text-muted">
+                                    <tr>
+                                        <th>Tarih</th>
+                                        <th>Gün</th>
+                                        <th>Durum</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var leave in myProfile.Leaves)
+                                    {
+                                        <tr>
+                                            <td>@leave.StartDate.ToShortDateString()</td>
+                                            <td>@((leave.EndDate - leave.StartDate).Days) Gün</td>
+                                            <td><span class="badge bg-light text-dark border">@leave.Status</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else if (activeTab == "ekip")
+                        {
+                            <h6 class="fw-bold mb-3">Yöneticim</h6>
+                            <p class="p-3 bg-light rounded">@(myProfile.Manager?.FullName ?? "Üst Yönetici")</p>
+
+                            @if (myProfile.Subordinates.Any())
+                            {
+                                <h6 class="fw-bold mt-4 mb-3">Bana Bağlı Çalışanlar</h6>
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var sub in myProfile.Subordinates)
+                                    {
+                                        <li class="list-group-item px-0 bg-transparent small">
+                                            <i class="bi bi-person me-2"></i> @sub.FullName (@sub.Position?.Name)
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        }
+                        else if (activeTab == "dosya")
+                        {
+                            <div class="row g-3">
+                                @foreach (var doc in myDocuments)
+                                {
+                                    <div class="col-md-6">
+                                        <div class="p-2 border rounded d-flex justify-content-between align-items-center">
+                                            <span class="small text-truncate">@doc.FileName</span>
+                                            <i class="bi bi-file-earmark-check text-success"></i>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Employee? myProfile;
+    private List<Document> myDocuments = new();
+    private string activeTab = "izin";
+    private string newPassword = "";
+    private bool passwordSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (int.TryParse(userIdClaim, out int userId))
+        {
+            // Giriş yapanın bilgilerini tüm detaylarıyla servisten çek
+            myProfile = await EmpService.GetEmployeeWithDetailsAsync(userId);
+            myDocuments = await DocService.GetEmployeeDocumentsAsync(userId);
+        }
+    }
+
+    private async Task UpdatePassword()
+    {
+        if (string.IsNullOrWhiteSpace(newPassword) || myProfile == null) return;
+
+        // AuthService üzerinden şifreyi veritabanında güncelle
+        var result = await AuthService.ChangePasswordAsync(myProfile.Id, newPassword);
+        if (result)
+        {
+            passwordSuccess = true;
+            newPassword = "";
+            StateHasChanged();
+        }
+    }
+}

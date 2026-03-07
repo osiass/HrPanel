@@ -1,5 +1,6 @@
 ﻿@page "/departmanlar"
 @attribute [Authorize]
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
 @using HrPanel.Models

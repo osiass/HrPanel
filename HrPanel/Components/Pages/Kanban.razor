@@ -1,0 +1,213 @@
+﻿@page "/kanban"
+@attribute [Authorize]
+@using HrPanel.Models
+@using HrPanel.Services
+@using Microsoft.AspNetCore.Authorization
+@inject KanbanService KanbanService
+@inject EmployeeService EmployeeService
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="bi bi-kanban me-2"></i>İş Takip Panosu (Kanban)</h2>
+        <button class="btn btn-dark shadow-sm" @onclick="() => showCreateModal = true">
+            <i class="bi bi-plus-lg me-2"></i>Yeni Görev
+        </button>
+    </div>
+
+    <div class="row g-4">
+        @foreach (var status in Enum.GetValues<HrPanel.Models.TaskStatus>())
+        {
+            <div class="col-md-4">
+                <div class="kanban-column p-3 rounded-4 shadow-sm border bg-white h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+                        <h6 class="fw-bold text-uppercase text-muted mb-0">@status.ToString()</h6>
+                        <span class="badge bg-light text-dark border">@taskList.Count(t => t.Status == status)</span>
+                    </div>
+
+                    <div class="kanban-list d-flex flex-column gap-3" style="min-height: 500px;">
+                        @foreach (var task in taskList.Where(t => t.Status == status))
+                        {
+                            <div class="card border-0 shadow-sm custom-card p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge @GetPriorityClass(task.Priority) mb-2">@task.Priority</span>
+                                    <div class="dropdown">
+                                        <button class="btn btn-link btn-sm text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu shadow border-0">
+                                            <li><button class="dropdown-item small text-danger" @onclick="() => DeleteTask(task.Id)"><i class="bi bi-trash me-2"></i>Görevi Sil</button></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <h6 class="fw-bold mb-1">@task.Title</h6>
+                                <p class="text-muted small mb-3">@task.Description</p>
+
+                                @* hareket butonları kaydırmak için*@
+                                <div class="d-flex justify-content-end gap-1 mb-3">
+                                    @if (task.Status == HrPanel.Models.TaskStatus.ToDo)
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.7rem;" @onclick="() => MoveTask(task.Id, HrPanel.Models.TaskStatus.InProgress)">
+                                            Başlat <i class="bi bi-arrow-right"></i>
+                                        </button>
+                                    }
+                                    else if (task.Status == HrPanel.Models.TaskStatus.InProgress)
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 0.7rem;" @onclick="() => MoveTask(task.Id, HrPanel.Models.TaskStatus.ToDo)">
+                                            <i class="bi bi-arrow-left"></i> Geri Al
+                                        </button>
+                                        <button class="btn btn-sm btn-success py-0 px-2" style="font-size: 0.7rem;" @onclick="() => MoveTask(task.Id, HrPanel.Models.TaskStatus.Done)">
+                                            Bitir <i class="bi bi-check-all"></i>
+                                        </button>
+                                    }
+                                    else if (task.Status == HrPanel.Models.TaskStatus.Done)
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 0.7rem;" @onclick="() => MoveTask(task.Id, HrPanel.Models.TaskStatus.InProgress)">
+                                            <i class="bi bi-arrow-left"></i> Yeniden Aç
+                                        </button>
+                                    }
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between mt-2 pt-2 border-top">
+                                    <div class="d-flex align-items-center">
+                                        <img src="https://ui-avatars.com/api/?name=@task.AssignedEmployee?.FullName&background=random" class="rounded-circle me-2" width="24">
+                                        <span class="small text-dark fw-semibold">@task.AssignedEmployee?.FullName</span>
+                                    </div>
+                                    <small class="text-muted" style="font-size: 0.7rem;">@task.CreatedAt.ToShortDateString()</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@* görev ekleme form *@
+@if (showCreateModal)
+{
+    <div class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg p-3">
+                <div class="modal-header border-0">
+                    <h5 class="fw-bold">Yeni Görev Atama</h5>
+                    <button type="button" class="btn-close" @onclick="() => showCreateModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Görev Başlığı</label>
+                        <input type="text" class="form-control bg-light border-0" @bind="newTask.Title" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Açıklama</label>
+                        <textarea class="form-control bg-light border-0" rows="2" @bind="newTask.Description"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">Öncelik</label>
+                            <select class="form-select bg-light border-0" @bind="newTask.Priority">
+                                @foreach (var p in Enum.GetValues<TaskPriority>())
+                                {
+                                    <option value="@p">@p</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">Atanan Personel</label>
+                            <select class="form-select bg-light border-0" @bind="newTask.AssignedEmployeeId">
+                                <option value="">Seçiniz...</option>
+                                @foreach (var e in employeeList)
+                                {
+                                    <option value="@e.Id">@e.FullName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-primary w-100 py-2 fw-bold" @onclick="CreateTask">Görevi Oluştur</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .kanban-column {
+        background-color: #f8f9fa !important;
+        border-top: 4px solid #4e73df !important;
+    }
+
+    .custom-card {
+        cursor: pointer;
+        transition: all 0.2s;
+        border-left: 4px solid #e3e6f0;
+    }
+
+        .custom-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+</style>
+
+@code {
+    private List<KanbanTask> taskList = new();
+    private List<Employee> employeeList = new();
+    private KanbanTask newTask = new();
+    private bool showCreateModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        taskList = await KanbanService.GetAllTaskAsync();
+
+        // Tüm personelleri çekiyoruz
+        var allEmployees = await EmployeeService.GetAllEmployeesAsync();
+
+        //sadece aktif olanları ve admin olmayanları listeye al
+        employeeList = allEmployees
+            .Where(e => e.IsActive && e.Role != EmployeeRole.Admin)
+            .ToList();
+    }
+
+    private async Task CreateTask()
+    {
+        if (string.IsNullOrWhiteSpace(newTask.Title))
+        {
+            return; // Basit doğrulama
+        }
+
+        await KanbanService.CreateTaskAsync(newTask);
+        newTask = new(); // Formu temizle
+        showCreateModal = false; // Modalı kapat
+        await LoadData(); // Verileri yenile
+    }
+
+    private async Task MoveTask(int taskId, HrPanel.Models.TaskStatus newStatus)
+    {
+        await KanbanService.UpdateTaskStatusAsync(taskId, newStatus);
+        await LoadData();
+    }
+
+    private async Task DeleteTask(int taskId)
+    {
+        await KanbanService.DeleteTaskAsync(taskId);
+        await LoadData();
+    }
+
+    private string GetPriorityClass(TaskPriority priority)
+    {
+        return priority switch
+        {
+            TaskPriority.Low => "bg-success",//öncelik düşükse yeşil
+            TaskPriority.Medium => "bg-warning",//öncelik orta ise sarı
+            TaskPriority.High => "bg-danger",//öncelik yüksekse kırmızı
+            _ => "bg-secondary"//geri kalan durumlar için gri
+        };
+    }
+}

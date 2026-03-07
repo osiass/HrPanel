@@ -2,6 +2,7 @@ using HrPanel.Components;
 using HrPanel.Data;
 using HrPanel.Services;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 
@@ -31,6 +32,9 @@ builder.Services.AddAuthentication("BoşŞema")
         options.LoginPath = "/login";
     });
 builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
+builder.Services.AddScoped<KanbanService>();
+builder.Services.AddScoped<DocumentService>();
+builder.Services.AddScoped<ProtectedLocalStorage>();
 
 var app = builder.Build();
 
@@ -45,7 +49,8 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseHttpsRedirection();
 app.UseAntiforgery();
 app.MapStaticAssets();
-
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

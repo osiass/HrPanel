@@ -1,18 +1,38 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
 
 <div class="page">
     <div class="sidebar">
         <NavMenu />
     </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">Hakkında</a>
-        </div>
+    <main class="main">
+        <header class="top-bar">
+            <div class="d-flex align-items-center">
+                <button class="btn btn-link text-dark me-3 d-md-none">
+                    <i class="bi bi-list fs-3"></i>
+                </button>
+                <h5 class="mb-0 fw-bold text-secondary">IK Kurumsal Portal</h5>
+            </div>
 
-        <article class="content px-4">
+            <div class="d-flex align-items-center gap-3">
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="text-end me-3 d-none d-sm-block">
+                            <div class="fw-bold text-dark">@context.User.Identity?.Name</div>
+                            <small class="text-muted">Panel</small>
+                        </div>
+                        <div class="dropdown">
+                            <img src="https://ui-avatars.com/api/?name=@context.User.Identity?.Name&background=4e73df&color=fff"
+                                 class="rounded-circle shadow-sm" width="40" alt="Profil">
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </header>
+
+        <div class="content-area">
             @Body
-        </article>
+        </div>
     </main>
 </div>
-

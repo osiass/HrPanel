@@ -5,8 +5,10 @@
 @using Microsoft.EntityFrameworkCore
 @using HrPanel.Models
 @using HrPanel.Services
+@using System.Security.Claims
 @inject LeaveService LeaveService
 @inject EmployeeService EmployeeService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="container mt-4">
     <h3 class="fw-bold mb-4"><i class="bi bi-calendar-check"></i> İzin Talepleri</h3>
@@ -18,14 +20,23 @@
                 <div class="card-header bg-dark text-white">Talep Oluştur</div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label">Personel</label>
-                        <select class="form-select" @bind="newLeave.EmployeeId">
-                            <option value="0">Personel Seçiniz...</option>
-                            @foreach (var emp in employeeList)
-                            {
-                                <option value="@emp.Id">@emp.FullName</option>
-                            }
-                        </select>
+                        <label class="form-label fw-bold">Personel</label>
+                        @if (currentUserRole == EmployeeRole.Employee)
+                        {
+                            @* Employee ise sadece kendini görür, değiştiremez *@
+                            <input type="text" class="form-control bg-light" value="@employeeList.FirstOrDefault()?.FullName" readonly />
+                        }
+                        else
+                        {
+                            @* Admin veya Manager ise herkesi seçebilir *@
+                            <select class="form-select" @bind="newLeave.EmployeeId">
+                                <option value="0">Personel Seçiniz...</option>
+                                @foreach (var emp in employeeList)
+                                {
+                                    <option value="@emp.Id">@emp.FullName</option>
+                                }
+                            </select>
+                        }
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Başlangıç</label>
@@ -56,32 +67,63 @@
         <!-- İZİN LİSTESİ -->
         <div class="col-md-8">
             <div class="card shadow-sm border-0">
-                <table class="table table-hover">
-                    <thead class="table-light">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light small text-uppercase">
                         <tr>
                             <th>Personel</th>
                             <th>Tarih Aralığı</th>
                             <th>Gün</th>
-                            <th>Durum</th>
-                            <th>İşlem</th>
+                            <th>Aşama</th>
+                            <th class="text-end">İşlem</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var leave in leaveList)
                         {
                             <tr>
-                                <td>@leave.Employee?.FullName</td>
-                                <td><small>@leave.StartDate.ToShortDateString() - @leave.EndDate.ToShortDateString()</small></td>
-                                <td>@((leave.EndDate - leave.StartDate).Days) Gün</td>
                                 <td>
-                                    <span class="badge @(leave.Status == LeaveStatus.Approved ? "bg-success" : "bg-warning")">
-                                        @leave.Status
-                                    </span>
+                                    <div class="fw-bold">@leave.Employee?.FullName</div>
+                                    <div class="small text-muted">@leave.Type</div>
                                 </td>
+                                <td>@leave.StartDate.ToShortDateString() - @leave.EndDate.ToShortDateString()</td>
+                                <td><span class="badge bg-light text-dark border">@((leave.EndDate - leave.StartDate).Days) Gün</span></td>
                                 <td>
-                                    @if (leave.Status == LeaveStatus.Pending)
+                                    @* Statüye göre farklı renklerde badge *@
+                                    @if (leave.Status == LeaveStatus.PendingManager)
                                     {
-                                        <button class="btn btn-sm btn-outline-success" @onclick="() => UpdateStatus(leave.Id, LeaveStatus.Approved)">Onayla</button>
+                                        <span class="badge bg-warning text-dark">Amir Onayı Bekliyor</span>
+                                    }
+                                    else if (leave.Status == LeaveStatus.PendingHR)
+                                    {
+
+                                        <span class="badge bg-info text-dark">İK Onayı Bekliyor</span>
+                                    }
+                                    else if (leave.Status == LeaveStatus.Approved)
+                                    {
+
+                                        <span class="badge bg-success">Onaylandı</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="badge bg-danger">Reddedildi</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @* SADECE ADMIN VEYA ILGILI AMIRSE BUTONLARI GÖSTER *@
+                                    @if (leave.Status != LeaveStatus.Approved && leave.Status != LeaveStatus.Rejected)
+                                    {
+                                        @* Employee ise onay butonlarını görmesin *@
+                                        <AuthorizeView Roles="Admin, Manager">
+                                            <div class="btn-group shadow-sm">
+                                                <button class="btn btn-sm btn-success" @onclick="() => ProcessApproval(leave.Id, true)">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" @onclick="() => ProcessApproval(leave.Id, false)">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            </div>
+                                        </AuthorizeView>
                                     }
                                 </td>
                             </tr>
@@ -98,18 +140,61 @@
     private List<Employee> employeeList = new();
     private Leave newLeave = new Leave { StartDate = DateTime.Now, EndDate = DateTime.Now.AddDays(1) };
     private string errorMessage = "";
+    private int currentUserId;
+    private EmployeeRole currentUserRole;
 
     protected override async Task OnInitializedAsync()
     {
+        // CS0120 hatası enjekte edilen değişkeni küçük harfle değişken adıyla çağırıyoruz
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var roleClaim = user.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userIdClaim != null && roleClaim != null)
+        {
+            currentUserId = int.Parse(userIdClaim);
+            currentUserRole = Enum.Parse<EmployeeRole>(roleClaim);
+
+            // eğer employee ise formu otomatik onun idsine kilitle
+            if (currentUserRole == EmployeeRole.Employee)
+            {
+                newLeave.EmployeeId = currentUserId;
+            }
+        }
+
         await LoadAsync();
     }
 
     public async Task LoadAsync()
     {
-        // Servis üzerinden izinleri ve personelleri çekiyoruz
-        leaveList = await LeaveService.GetAllLeavesAsync();
-        employeeList = await EmployeeService.GetAllEmployeesAsync();
-        StateHasChanged();
+        // employee sadece kendi izinlerini Admin-Manager ise yetkili olduğu izinleri çeker
+        if (currentUserRole == EmployeeRole.Employee)
+        {
+            leaveList = await LeaveService.GetMyLeavesAsync(currentUserId);
+            // Employee başkasını seçemesin diye listeyi sadece kendisiyle dolduruyoruz
+            var me = await EmployeeService.GetEmployeeByIdAsync(currentUserId);
+            employeeList = me != null ? new List<Employee> { me } : new List<Employee>();
+        }
+        else
+        {
+            leaveList = await LeaveService.GetPendingLeavesAsync(currentUserId, currentUserRole);
+
+            // Tüm personelleri servisten çekiyoruz
+            var allEmployees = await EmployeeService.GetAllEmployeesAsync();
+
+            if (currentUserRole == EmployeeRole.Manager)
+            {
+                // müdürler sadece admin olmayanları listede görebilir
+                employeeList = allEmployees.Where(e => e.Role != EmployeeRole.Admin).ToList();
+            }
+            else
+            {
+                // Admin her şeyi görebilir
+                employeeList = allEmployees;
+            }
+        }
     }
 
     public async Task SaveLeave()
@@ -118,6 +203,7 @@
 
         if (string.IsNullOrWhiteSpace(newLeave.Description) || newLeave.EmployeeId == 0)
         {
+            errorMessage = "Lütfen tüm alanları doldurun.";
             return;
         }
 
@@ -131,7 +217,10 @@
         {
             await LeaveService.AddLeaveAsync(newLeave);
 
+            // Formu temizlerken mevcut kullanıcının IDsini koruyoruz 
             newLeave = new Leave { StartDate = DateTime.Now, EndDate = DateTime.Now.AddDays(1) };
+            if (currentUserRole == EmployeeRole.Employee) newLeave.EmployeeId = currentUserId;
+
             await LoadAsync();
         }
 
@@ -140,6 +229,13 @@
     public async Task UpdateStatus(int id, LeaveStatus newStatus)
     {
         await LeaveService.UpdateLeaveStatusAsync(id, newStatus);
+        await LoadAsync();
+    }
+
+    private async Task ProcessApproval(int id, bool isApproved)
+    {
+        await LeaveService.ProcessApprovalAsync(id, isApproved, isApproved ? "Onaylandı" : "Reddedildi");
+
         await LoadAsync();
     }
 }

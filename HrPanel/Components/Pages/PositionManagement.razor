@@ -1,5 +1,6 @@
 ﻿@page "/pozisyonlar"
 @attribute [Authorize]
+@attribute [Authorize(Roles = "Admin")]
 @using HrPanel.Models
 @using HrPanel.Services
 @using Microsoft.AspNetCore.Authorization

@@ -1,11 +1,16 @@
 ﻿@page "/"
 @attribute [Authorize]
 @using HrPanel.Services
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.EntityFrameworkCore
 @using HrPanel.Models
 @using HrPanel.Data
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @inject DashboardService DashService
+@inject LeaveService LeaveService
+@inject EmployeeService EmployeeService
+@inject KanbanService KanbanService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -13,113 +18,200 @@
         <div class="text-muted">@DateTime.Now.ToString("dd MMMM yyyy, dddd")</div>
     </div>
 
+    @* onay bekleyenleri sadece Admin ve Manager görebilir *@
+    <AuthorizeView Roles="Admin, Manager">
+        <Authorized>
+            @if (pendingApprovals != null && pendingApprovals.Any())
+            {
+                <div class="card border-0 shadow-sm mb-4 animate__animated animate__fadeIn" style="border-left: 5px solid #ffc107 !important;">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-clock-history text-warning me-2"></i>Onayınızı Bekleyen Talepler</h6>
+                        <div class="list-group list-group-flush">
+                            @foreach (var leave in pendingApprovals)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0">
+                                    <div>
+                                        <span class="fw-bold">@leave.Employee?.FullName</span>
+                                        <small class="text-muted">(@leave.Type - @leave.StartDate.ToShortDateString())</small>
+                                    </div>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-success px-3" @onclick="() => Process(leave.Id, true)">Onayla</button>
+                                        <button class="btn btn-sm btn-outline-danger px-3" @onclick="() => Process(leave.Id, false)">Reddet</button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </Authorized>
+    </AuthorizeView>
+
     <div class="row g-4 mb-5">
-        <!-- Toplam Personel -->
         <div class="col-12 col-sm-6 col-md-3">
             <div class="card border-0 shadow-sm h-100 bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between px-md-1">
-                        <div>
-                            <h3 class="fw-bold">@stats.TotalEmployees</h3>
-                            <p class="mb-0">Toplam Personel</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="bi bi-people fs-1 opacity-50"></i>
-                        </div>
-                    </div>
+                <div class="card-body text-center">
+                    <h3 class="fw-bold">@stats.TotalEmployees</h3>
+                    <p class="mb-0 small">Toplam Personel</p>
                 </div>
             </div>
         </div>
 
-        <!-- Aktif Personel -->
         <div class="col-12 col-sm-6 col-md-3">
             <div class="card border-0 shadow-sm h-100 bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between px-md-1">
-                        <div>
-                            <h3 class="fw-bold">@stats.ActiveEmployees</h3>
-                            <p class="mb-0">Aktif Çalışan</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="bi bi-person-check fs-1 opacity-50"></i>
-                        </div>
-                    </div>
+                <div class="card-body text-center">
+                    <h3 class="fw-bold">@stats.ActiveEmployees</h3>
+                    <p class="mb-0 small">Aktif Çalışan</p>
                 </div>
             </div>
         </div>
 
-        <!-- Departmanlar -->
         <div class="col-12 col-sm-6 col-md-3">
             <div class="card border-0 shadow-sm h-100 bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between px-md-1">
-                        <div>
-                            <h3 class="fw-bold">@stats.TotalDepartments</h3>
-                            <p class="mb-0">Departman Sayısı</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="bi bi-building fs-1 opacity-50"></i>
-                        </div>
-                    </div>
+                <div class="card-body text-center">
+                    <h3 class="fw-bold">@stats.TotalDepartments</h3>
+                    <p class="mb-0 small">Departman Sayısı</p>
                 </div>
             </div>
         </div>
 
-        <!-- Ortalama Maaş -->
-        <div class="col-12 col-sm-6 col-md-3">
-            <div class="card border-0 shadow-sm h-100 bg-warning text-dark">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between px-md-1">
-                        <div>
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <div class="card border-0 shadow-sm h-100 bg-warning text-dark">
+                        <div class="card-body text-center">
                             <h3 class="fw-bold">@stats.AverageSalary.ToString("C2")</h3>
-                            <p class="mb-0">Ortalama Maaş</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="bi bi-cash-stack fs-1 opacity-50"></i>
+                            <p class="mb-0 small">Ortalama Maaş</p>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </Authorized>
+        </AuthorizeView>
     </div>
 
-    <!--bilgi -->
-    <div class="card shadow-sm border-0 h-100">
-        <div class="card-header bg-white fw-bold d-flex justify-content-between">
-            <span><i class="bi bi-person-plus"></i> Son Eklenen Personeller</span>
-            <a href="/personeller" class="btn btn-sm btn-link p-0 text-decoration-none">Tümünü Gör</a>
+    <div class="row g-4">
+        @* Maaş sütunu sadece Admine görünür *@
+        <div class="col-md-7">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white fw-bold py-3">
+                    <span><i class="bi bi-person-plus me-2"></i>Son Eklenen Personeller</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead class="table-light small">
+                            <tr>
+                                <th class="ps-3">Ad Soyad</th>
+                                <th>Departman</th>
+                                <AuthorizeView Roles="Admin">
+                                    <th>Maaş</th>
+                                </AuthorizeView>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var emp in stats.RecentEmployees)
+                            {
+                                <tr>
+                                    <td class="ps-3 fw-semibold">@emp.FullName</td>
+                                    <td><span class="badge bg-light text-dark border">@emp.Department?.Name</span></td>
+                                    <AuthorizeView Roles="Admin">
+                                        <td>@emp.Salary.ToString("C0")</td>
+                                    </AuthorizeView>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class="card-body p-0">
-            <table class="table table-sm table-hover mb-0">
-                <thead class="table-light small">
-                    <tr>
-                        <th>Ad Soyad</th>
-                        <th>Departman</th>
-                        <th>Maaş</th>
-                    </tr>
-                </thead>
-                <tbody style="font-size: 0.9rem;">
-                    @foreach (var emp in stats.RecentEmployees)
+
+        @*  Employee ve Manager için iş takibi *@
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-dark text-white fw-bold py-3 d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-list-task me-2"></i>Aktif Görevler</span>
+                    <a href="/kanban" class="btn btn-sm btn-outline-light border-0"><i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="card-body p-0">
+                    @if (myTasks == null || !myTasks.Any())
                     {
-                        <tr>
-                            <td>@emp.FullName</td>
-                            <td><span class="badge bg-light text-dark">@emp.Department?.Name</span></td>
-                            <td>@emp.Salary.ToString("C0")</td>
-                        </tr>
+                        <div class="text-center py-5 text-muted small">Şu an bekleyen görev yok.</div>
                     }
-                </tbody>
-            </table>
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var task in myTasks.Take(5))
+                            {
+                                <li class="list-group-item py-3">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="fw-bold small">@task.Title</div>
+                                        <span class="badge @(task.Status == HrPanel.Models.TaskStatus.InProgress ? "bg-primary" : "bg-warning text-dark")" style="font-size: 0.65rem;">@task.Status</span>
+                                    </div>
+                                    <div class="text-muted small mt-1" style="font-size: 0.75rem;">@task.AssignedEmployee?.FullName</div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 @code {
-    // DashboardStats nesnesi servisten dönen tüm istatistikleri içinde barındırır
     private DashboardStats stats = new();
+    private List<Leave> pendingApprovals = new();
+    private List<Employee> myTeam = new();
+    private List<KanbanTask> myTasks = new(); // Görev listesi
+    private bool isManager = false;
+    private int currentUserId = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        // Tüm istatistikleri servisten tek bir paket (DTO) olarak alıyoruz
         stats = await DashService.GetDashboardStatsAsync();
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var roleClaim = user.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userIdClaim != null && roleClaim != null)
+        {
+            currentUserId = int.Parse(userIdClaim);
+            EmployeeRole currentRole = Enum.Parse<EmployeeRole>(roleClaim);
+            isManager = (currentRole == EmployeeRole.Manager);
+
+            // onay bekleyenler
+            pendingApprovals = await LeaveService.GetPendingLeavesAsync(currentUserId, currentRole);
+
+            //görevleri çek
+            var allTasks = await KanbanService.GetAllTaskAsync();
+            if (currentRole == EmployeeRole.Admin)
+            {
+                myTasks = allTasks.Where(t => t.Status != HrPanel.Models.TaskStatus.Done).ToList();
+            }
+            else if (isManager)
+            {
+                // Müdür ekibinin ve kendisinin bitmemiş görevlerini görsür
+                myTasks = allTasks.Where(t => t.Status != HrPanel.Models.TaskStatus.Done).ToList();
+            }
+            else
+            {
+                // Çalışan sadece kendi görevlerini görsün
+                myTasks = allTasks.Where(t => t.AssignedEmployeeId == currentUserId && t.Status != HrPanel.Models.TaskStatus.Done).ToList();
+            }
+        }
+    }
+
+    private async Task Process(int leaveId, bool isApproved)
+    {
+        await LeaveService.ProcessApprovalAsync(leaveId, isApproved, "İşlem yapıldı");
+        await LoadDashboardData();
+        stats = await DashService.GetDashboardStatsAsync();
+        StateHasChanged();
     }
 }

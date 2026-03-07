@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HrPanel.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260304071830_AddUserTable")]
-    partial class AddUserTable
+    [Migration("20260305105929_mig3")]
+    partial class mig3
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -50,6 +50,13 @@ namespace HrPanel.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("BirthDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("DepartmentId")
                         .HasColumnType("int");
 
@@ -61,10 +68,27 @@ namespace HrPanel.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("HireDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IdentityNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("PositionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Role")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Salary")
@@ -74,9 +98,46 @@ namespace HrPanel.Migrations
 
                     b.HasIndex("DepartmentId");
 
+                    b.HasIndex("ManagerId");
+
                     b.HasIndex("PositionId");
 
                     b.ToTable("Employees");
+                });
+
+            modelBuilder.Entity("HrPanel.Models.KanbanTask", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AssignedEmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedEmployeeId");
+
+                    b.ToTable("KanbanTasks");
                 });
 
             modelBuilder.Entity("HrPanel.Models.Leave", b =>
@@ -95,6 +156,9 @@ namespace HrPanel.Migrations
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ManagerNote")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
@@ -166,6 +230,10 @@ namespace HrPanel.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("HrPanel.Models.Employee", "Manager")
+                        .WithMany("Subordinates")
+                        .HasForeignKey("ManagerId");
+
                     b.HasOne("HrPanel.Models.Position", "Position")
                         .WithMany()
                         .HasForeignKey("PositionId")
@@ -174,13 +242,26 @@ namespace HrPanel.Migrations
 
                     b.Navigation("Department");
 
+                    b.Navigation("Manager");
+
                     b.Navigation("Position");
+                });
+
+            modelBuilder.Entity("HrPanel.Models.KanbanTask", b =>
+                {
+                    b.HasOne("HrPanel.Models.Employee", "AssignedEmployee")
+                        .WithMany()
+                        .HasForeignKey("AssignedEmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AssignedEmployee");
                 });
 
             modelBuilder.Entity("HrPanel.Models.Leave", b =>
                 {
                     b.HasOne("HrPanel.Models.Employee", "Employee")
-                        .WithMany()
+                        .WithMany("Leaves")
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -191,6 +272,13 @@ namespace HrPanel.Migrations
             modelBuilder.Entity("HrPanel.Models.Department", b =>
                 {
                     b.Navigation("Employees");
+                });
+
+            modelBuilder.Entity("HrPanel.Models.Employee", b =>
+                {
+                    b.Navigation("Leaves");
+
+                    b.Navigation("Subordinates");
                 });
 #pragma warning restore 612, 618
         }

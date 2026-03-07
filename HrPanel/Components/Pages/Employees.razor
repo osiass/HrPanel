@@ -1,137 +1,208 @@
 ﻿@page "/personeller"
 @attribute [Authorize]
+@attribute [Authorize(Roles = "Admin, Manager")]
+@using HrPanel.Models
 @using HrPanel.Services
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.EntityFrameworkCore
-@using HrPanel.Models
-@using HrPanel.Data
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
 @inject EmployeeService EmpService
 @inject DepartmentService DeptService
 @inject PositionService PosService
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
 
-
-<div class="container mt-4">
+<div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold mb-4"><i class="bi bi-people-fill"></i> Personel Yönetimi</h2>
+        <h2 class="fw-bold"><i class="bi bi-people-fill me-2"></i>Çalışan Portföyü</h2>
+        <button class="btn btn-primary shadow-sm" @onclick="PrepareNew">
+            <i class="bi bi-person-plus-fill me-2"></i>Yeni Personel Ekle
+        </button>
     </div>
 
     <div class="row">
-        <!-- YENİ PERSONEL EKLEME FORMU -->
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-header @(newEmployee.Id == 0 ? "bg-dark" : "bg-warning") text-white">
-                    @* başlık id durumuna göre değişiyor *@
-                    <h5 class="mb-0">@(newEmployee.Id == 0 ? "Yeni Personel Kaydı" : "Personel Düzenle")</h5>
-                </div>
+        <!-- FİLTRELEME VE LİSTELEME -->
+        <div class="@(isEditing ? "col-md-7" : "col-md-12") transition-all">
+            <div class="card custom-card shadow-sm border-0">
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Ad Soyad</label>
-                        <input type="text" class="form-control" placeholder="Ad Soyad giriniz"
-                               @bind="newEmployee.FullName" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">E-Posta</label>
-                        <input type="email" class="form-control" placeholder="E-posta giriniz"
-                               @bind="newEmployee.Email" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Pozisyon</label>
-                        @* Pozisyon alanı veritabanından gelen listeden seçiliyor *@
-                        <select class="form-select" @bind="newEmployee.PositionId">
-                            <option value="0">Seçiniz...</option>
-                            @foreach (var pos in positionList)
-                            {
-                                <option value="@pos.Id">@pos.Name</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Maaş</label>
-                        <input type="number" class="form-control" @bind="newEmployee.Salary" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Departman</label>
-                        <select class="form-select" @bind="newEmployee.DepartmentId">
-                            <option value="0">Seçiniz...</option>
-                            @foreach (var dept in departmentList)
-                            {
-                                <option value="@dept.Id">@dept.Name</option>
-                            }
-                        </select>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control border-start-0" placeholder="İsim veya e-posta ile ara..." @bind="searchTerm" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" @bind="filterDeptId">
+                                <option value="0">Tüm Departmanlar</option>
+                                @foreach (var d in departmentList)
+                                {
+                                    <option value="@d.Id">@d.Name</option>
+                                }
+                            </select>
+                        </div>
                     </div>
 
-                    @* Personel Aktiflik Durumu Kontrolü *@
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="isActiveCheck" @bind="newEmployee.IsActive" />
-                        <label class="form-check-label fw-bold" for="isActiveCheck text-primary">Personel Aktif mi?</label>
-                    </div>
-
-                    @*buton rengi ve metni Id durumuna göre değişiyor *@
-                    <button class="btn @(newEmployee.Id == 0 ? "btn-success" : "btn-warning") w-100 py-2 fw-bold" @onclick="SaveEmployee">
-                        <i class="bi @(newEmployee.Id == 0 ? "bi-check-circle" : "bi-arrow-repeat")"></i>
-                        @(newEmployee.Id == 0 ? "Personeli Kaydet" : "Değişiklikleri Güncelle")
-                    </button>
-
-                    @if (newEmployee.Id > 0)
-                    {
-                        <button class="btn btn-link w-100 mt-2 text-decoration-none text-muted" @onclick="CancelEdit">Düzenlemeyi İptal Et</button>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <!--PERSONEL LİSTESİ -->
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-0">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Personel</th>
-                                <th>Departman</th>
-                                <th>Pozisyon</th>
-                                <th>Maaş</th>
-                                <th class="text-center">İşlemler</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (employeeList == null || !employeeList.Any())
-                            {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="text-muted small text-uppercase">
                                 <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted">
-                                        Henüz kayıtlı personel bulunamadı.
-                                    </td>
+                                    <th>Çalışan</th>
+                                    <th>Departman / Pozisyon</th>
+                                    <th>Durum</th>
+                                    <th class="text-end">İşlemler</th>
                                 </tr>
-                            }
-                            else
-                            {
-                                @foreach (var emp in employeeList)
+                            </thead>
+                            <tbody>
+                                @foreach (var emp in employeeList.Where(e => e.FullName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
                                 {
                                     <tr class="@(emp.IsActive ? "" : "opacity-50")">
                                         <td>
-                                            <div class="fw-bold">@emp.FullName</div>
-                                            <small class="text-muted">@emp.Email</small>
+                                            <div class="d-flex align-items-center">
+                                                <img src="https://ui-avatars.com/api/?name=@emp.FullName&background=random" class="rounded-circle me-3" width="40">
+                                                <div>
+                                                    <div class="fw-bold">@emp.FullName</div>
+                                                    <div class="small text-muted">@emp.Email</div>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td><span class="badge bg-info text-dark">@emp.Department?.Name</span></td>
-                                        <td>@emp.Position?.Name</td>
-                                        <td>@emp.Salary.ToString("C2")</td>
-                                        <td class="text-center">
-                                            @*Düzenle butonu *@
-                                            <button class="btn btn-outline-primary btn-sm me-1" @onclick="() => PrepareForEdit(emp)">
-                                                <i class="bi bi-pencil"></i> Düzenle
-                                            </button>
-                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteEmployee(emp.Id)">
-                                                <i class="bi bi-trash"></i> Sil
-                                            </button>
+                                        <td>
+                                            <div class="small fw-bold text-dark">@emp.Department?.Name</div>
+                                            <div class="small text-muted">@emp.Position?.Name</div>
+                                        </td>
+                                        <td>
+                                            @if (emp.IsActive)
+                                            {
+                                                <span class="badge bg-success-subtle text-success px-3">Aktif</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger px-3">Pasif</span>
+                                            }
+                                        </td>
+                                        <td class="text-end" style="min-width: 150px;">
+                                            <div class="d-flex justify-content-end gap-2">
+                                                @*logine atmaması için soft navigation butonu *@
+                                                <button class="btn btn-info btn-sm text-white" @onclick="() => GoToDetail(emp.Id)">
+                                                    <i class="bi bi-eye"></i> Detay
+                                                </button>
+                                                <button class="btn btn-primary btn-sm" @onclick="() => EditEmployee(emp)">
+                                                    <i class="bi bi-pencil"></i> Düzenle
+                                                </button>
+                                                <AuthorizeView Roles="Admin">
+                                                    <button class="btn btn-danger btn-sm" @onclick="() => Delete(emp.Id)">
+                                                        <i class="bi bi-trash"></i> Sil
+                                                    </button>
+                                                </AuthorizeView>
+                                            </div>
                                         </td>
                                     </tr>
                                 }
-                            }
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- EKLEME/DÜZENLEME FORMU-->
+        @if (isEditing)
+        {
+            <div class="col-md-5 animate__animated animate__fadeInRight">
+                <div class="card custom-card border-0 shadow-lg bg-white sticky-top" style="top: 100px;">
+                    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">@(newEmployee.Id == 0 ? "Personel Tanımla" : "Bilgileri Güncelle")</h5>
+                        <button class="btn-close" @onclick="CloseForm"></button>
+                    </div>
+                    <div class="card-body p-4">
+                        @if (!string.IsNullOrEmpty(uiErrorMessage))
+                        {
+                            <div class="alert alert-danger py-2 small mb-3">@uiErrorMessage</div>
+                        }
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold">Tam Adı</label>
+                                <input type="text" class="form-control form-control-lg bg-light border-0" @bind="newEmployee.FullName" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">T.C. Kimlik No</label>
+                                <input type="text" class="form-control bg-light border-0" @bind="newEmployee.IdentityNumber" maxlength="11" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">E-Posta</label>
+                                <input type="email" class="form-control bg-light border-0" @bind="newEmployee.Email" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Departman</label>
+                                <select class="form-select bg-light border-0" @bind="newEmployee.DepartmentId">
+                                    <option value="0">Seçiniz...</option>
+                                    @foreach (var d in departmentList)
+                                    {
+                                        <option value="@d.Id">@d.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Pozisyon</label>
+                                <select class="form-select bg-light border-0" @bind="newEmployee.PositionId">
+                                    <option value="0">Seçiniz...</option>
+                                    @foreach (var p in positionList)
+                                    {
+                                        <option value="@p.Id">@p.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Maaş (TL)</label>
+                                <input type="number" class="form-control bg-light border-0" @bind="newEmployee.Salary" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Telefon</label>
+                                <input type="text" class="form-control bg-light border-0" @bind="newEmployee.Phone" placeholder="05xx..." />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Sistem Yetki Rolü</label>
+                                <select class="form-select bg-light border-0" @bind="newEmployee.Role">
+                                    @foreach (var role in Enum.GetValues<HrPanel.Models.EmployeeRole>())
+                                    {
+                                        @* MÜDÜR GİRİŞ YAPTIYSA ADMİN ROLÜNÜ GÖSTERME *@
+                                        @if (currentUserRole == "Manager" && role == EmployeeRole.Admin) continue;
+                                        <option value="@role">@role.ToString()</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Doğrudan Bağlı Olduğu Amir</label>
+                                <select class="form-select bg-light border-0" @bind="newEmployee.ManagerId">
+                                    <option value="">Amir Atanmamış</option>
+                                    @foreach (var m in managerList.Where(x => x.Id != newEmployee.Id))
+                                    {
+                                        <option value="@m.Id">@m.FullName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold">Ev Adresi</label>
+                                <textarea class="form-control bg-light border-0" rows="2" @bind="newEmployee.Address"></textarea>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="activeSwitch" @bind="newEmployee.IsActive">
+                                    <label class="form-check-label fw-bold small" for="activeSwitch">Personel Aktif mi?</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top d-flex gap-2">
+                            <button class="btn btn-primary flex-grow-1 py-2 fw-bold" @onclick="Save">
+                                <i class="bi bi-save me-2"></i>Kaydet
+                            </button>
+                            <button class="btn btn-light py-2 px-4" @onclick="CloseForm">Vazgeç</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 </div>
 
@@ -139,51 +210,67 @@
     private List<Employee> employeeList = new();
     private List<Department> departmentList = new();
     private List<Position> positionList = new();
+    private List<Employee> managerList = new();
     private Employee newEmployee = new Employee();
+
+    private bool isEditing = false; // Formun sağdan açılmasını kontrol eder
+    private string searchTerm = ""; // Arama kutusu için
+    private int filterDeptId = 0;   // Departman filtresi için
+    private string currentUserRole = "";
+    private int currentUserId = 0;
+    private string uiErrorMessage = "";
 
     protected override async Task OnInitializedAsync()//sayfa ilk açıldığında loadasync tetikle
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        currentUserRole = authState.User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+
+        var idClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idClaim, out int uid)) currentUserId = uid;
+
         await LoadAsync();
     }
 
     public async Task LoadAsync()//veritabanından personel ve departman bilgilerini çek
     {
-        employeeList = await EmpService.GetAllEmployeesAsync();
+        var allEmployees = await EmpService.GetAllEmployeesAsync();
         departmentList = await DeptService.GetAllDepartmentsAsync();
         positionList = await PosService.GetAllPositionsAsync();
-    }
 
-    public async Task SaveEmployee()
-    {
-        if (string.IsNullOrWhiteSpace(newEmployee.FullName) || newEmployee.DepartmentId == 0 || newEmployee.PositionId == 0)
+        if (currentUserRole == "Manager")
         {
-            return;
-        }
+            //Müdür sadece sıradan çalışanları değil amiri kendisi olan herkesi görsün.
+            employeeList = allEmployees
+                .Where(e => e.Role == EmployeeRole.Employee || e.ManagerId == currentUserId)
+                .ToList();
 
-        if (newEmployee.Id == 0)
-        {
-            await EmpService.AddEmployeeAsync(newEmployee);
+            managerList = allEmployees.Where(e => e.Role == EmployeeRole.Admin && e.IsActive).ToList();
         }
         else
         {
-            await EmpService.UpdateEmployeeAsync(newEmployee);
+            employeeList = allEmployees;
+            managerList = allEmployees.Where(e => (e.Role == EmployeeRole.Admin || e.Role == EmployeeRole.Manager) && e.IsActive).ToList();
         }
-
-        newEmployee = new Employee();//formu temizle
-        await LoadAsync();
-
     }
 
-    public async Task DeleteEmployee(int id)
+    // Yeni Personel Ekleme modunu açar
+    private void PrepareNew()
     {
-        await EmpService.DeleteEmployeeAsync(id);
-        await LoadAsync();
+        newEmployee = new Employee { IsActive = true, Role = EmployeeRole.Employee }; // Varsayılan olarak Employee başlasın
+        isEditing = true;
+        uiErrorMessage = "";
     }
 
-    // Seçilen personeli forma yükler
-    private void PrepareForEdit(Employee emp)
+    // Seçilen personelin detayına gider
+    private void GoToDetail(int id)
     {
-        newEmployee = new Employee //formda isim değiştiği an personel bilgileri güncellenir veritabanına kaydetmeden
+        Nav.NavigateTo($"/personel/{id}");
+    }
+
+    // Düzenleme modunu açar ve verileri kopyalar
+    private void EditEmployee(Employee emp)
+    {
+        newEmployee = new Employee
         {
             Id = emp.Id,
             FullName = emp.FullName,
@@ -191,13 +278,61 @@
             Salary = emp.Salary,
             DepartmentId = emp.DepartmentId,
             PositionId = emp.PositionId,
-            IsActive = emp.IsActive
+            IsActive = emp.IsActive,
+            IdentityNumber = emp.IdentityNumber,
+            Address = emp.Address,
+            ManagerId = emp.ManagerId,
+            BirthDate = emp.BirthDate,
+            Phone = emp.Phone,
+            Role = emp.Role
         };
+        isEditing = true;
+        uiErrorMessage = "";
     }
 
-    // Düzenlemeyi iptal etme formu boşaltır
-    private void CancelEdit()
+    public async Task Save()
     {
+        //Email alanı boşsa servise gitmeden durdur
+        if (string.IsNullOrWhiteSpace(newEmployee.FullName) ||
+            string.IsNullOrWhiteSpace(newEmployee.Email) ||
+            newEmployee.DepartmentId == 0 ||
+            newEmployee.PositionId == 0)
+        {
+            uiErrorMessage = "Adı, Email, Departman ve Pozisyon alanlarını boş bırakmayın.";
+            return;
+        }
+
+        try
+        {
+            if (newEmployee.Id == 0)
+            {
+                await EmpService.AddEmployeeAsync(newEmployee);
+            }
+            else
+            {
+                await EmpService.UpdateEmployeeAsync(newEmployee);
+            }
+
+            await CloseForm();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            uiErrorMessage = "Kayıt sırasında bir hata oluştu: " + ex.Message;
+        }
+    }
+
+    public async Task Delete(int id)
+    {
+        await EmpService.DeleteEmployeeAsync(id);
+        await LoadAsync();
+    }
+
+    private Task CloseForm()
+    {
+        isEditing = false;
         newEmployee = new Employee();
+        uiErrorMessage = "";
+        return Task.CompletedTask;
     }
 }

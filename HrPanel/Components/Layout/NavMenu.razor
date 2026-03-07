@@ -1,43 +1,103 @@
-﻿<div class="top-row ps-3 navbar navbar-dark bg-primary">
-    <div class="container-fluid">
-        <a class="navbar-brand text-white" href="">İK Yönetim Paneli</a>
+﻿<div class="p-4 mb-2">
+    <h4 class="text-white fw-bold mb-0">Hr<span class="text-primary text-opacity-75">Connect</span></h4>
+    <small class="text-muted">Management System</small>
+</div>
+
+<nav class="flex-column px-2">
+    @*HERKESİN GÖREBİLECEĞİ ALAN *@
+    <div class="nav-item mb-1">
+        <NavLink class="nav-link custom-nav-link" href="" Match="NavLinkMatch.All">
+            <i class="bi bi-grid-1x2-fill me-3"></i> Dashboard
+        </NavLink>
     </div>
-</div>
 
-<div class="nav-scrollable">
-    <nav class="flex-column mt-2">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link text-white" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-speedometer2 me-2"></span> Dashboard
-            </NavLink>
-        </div>
+    @*KULLANICININ KENDİ PROFİLİ *@
+    <div class="nav-item mb-1">
+        <NavLink class="nav-link custom-nav-link" href="profilim">
+            <i class="bi bi-person-circle me-3"></i> Profilim
+        </NavLink>
+    </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link text-white" href="departmanlar">
-                <span class="bi bi-building me-2"></span> Departmanlar
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link text-white" href="pozisyonlar">
-                <span class="bi bi-briefcase me-2"></span> Pozisyonlar
-            </NavLink>
-        </div>
+    @*SADECE ADMIN VE MANAGER GÖREBİLİR *@
+    <AuthorizeView Roles="Admin, Manager">
+        <Authorized>
+            <div class="text-muted small px-3 mt-4 mb-2 text-uppercase fw-bold" style="font-size: 0.7rem;">Organizasyon</div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link text-white" href="personeller">
-                <span class="bi bi-people me-2"></span> Personeller
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link text-white" href="izinler">
-                <span class="bi bi-calendar-check me-2"></span> İzinler
-            </NavLink>
-        </div>
+            <div class="nav-item mb-1">
+                <NavLink class="nav-link custom-nav-link" href="personeller">
+                    <i class="bi bi-people-fill me-3"></i> Çalışan Yönetimi
+                </NavLink>
+            </div>
+        </Authorized>
+    </AuthorizeView>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link text-white" href="raporlar">
-                <span class="bi bi-file-earmark-bar-graph me-2"></span> Raporlar
-            </NavLink>
-        </div>
-    </nav>
-</div>
+    @* SADECE ADMIN GÖREBİLİR *@
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <div class="nav-item mb-1">
+                <NavLink class="nav-link custom-nav-link" href="departmanlar">
+                    <i class="bi bi-diagram-3-fill me-3"></i> Departmanlar
+                </NavLink>
+            </div>
+            <div class="nav-item mb-1">
+                <NavLink class="nav-link custom-nav-link" href="pozisyonlar">
+                    <i class="bi bi-briefcase-fill me-3"></i> Pozisyonlar
+                </NavLink>
+            </div>
+            <div class="nav-item mb-1">
+                <NavLink class="nav-link custom-nav-link" href="raporlar">
+                    <i class="bi bi-pie-chart-fill me-3"></i> Analitik Raporlar
+                </NavLink>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
+    <div class="text-muted small px-3 mt-4 mb-2 text-uppercase fw-bold" style="font-size: 0.7rem;">Süreçler</div>
+
+    <div class="nav-item mb-1">
+        <NavLink class="nav-link custom-nav-link" href="izinler">
+            <i class="bi bi-calendar-check-fill me-3"></i> İzin Talepleri
+        </NavLink>
+    </div>
+
+    <div class="nav-item mb-1">
+        <NavLink class="nav-link custom-nav-link" href="kanban">
+            <i class="bi bi-kanban-fill me-3"></i> İş Planı (Kanban)
+        </NavLink>
+    </div>
+</nav>
+
+<style>
+    .sidebar {
+        background-color: #1a1c23 !important;
+        height: 100vh;
+    }
+
+    /* GRUP BAŞLIKLARI*/
+    .sidebar .text-uppercase {
+        color: #858796 !important; 
+        font-weight: 800 !important;
+        font-size: 0.75rem !important;
+        letter-spacing: 1px;
+        opacity: 1 !important; 
+    }
+
+    /* LİNKLER */
+    .custom-nav-link {
+        color: #ffffff !important;
+        font-weight: 500 !important;
+        opacity: 0.8;
+    }
+
+    .custom-nav-link:hover {
+        opacity: 1;
+        background-color: rgba(255,255,255,0.1) !important;
+    }
+
+    /* AKTİF LİNK */
+    .custom-nav-link.active {
+        background-color: #4e73df !important;
+        color: white !important;
+        opacity: 1;
+    }
+</style>

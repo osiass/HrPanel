@@ -26,19 +26,32 @@ namespace HrPanel.Services
         {
             var stats = new DashboardStats();
 
-            stats.TotalEmployees = await _context.Employees.CountAsync();
-            stats.TotalDepartments = await _context.Departments.CountAsync();
-            stats.ActiveEmployees = await _context.Employees.CountAsync(e => e.IsActive);
-            stats.RecentEmployees = await _context.Employees
-                .OrderByDescending(e => e.Id)
-                .Take(5)
-                .Include(e => e.Department)
-                .ToListAsync();
+            //Toplam Personel admin hariç
+            stats.TotalEmployees = await _context.Employees
+                .CountAsync(e => e.Role != EmployeeRole.Admin);
 
+            //Departman Sayısı
+            stats.TotalDepartments = await _context.Departments.CountAsync();
+
+            // aktif çalışan admin hariç
+            stats.ActiveEmployees = await _context.Employees
+                .CountAsync(e => e.IsActive && e.Role != EmployeeRole.Admin);
+
+            // ort maaş admin hariç
             if (stats.TotalEmployees > 0)
             {
-                stats.AverageSalary = await _context.Employees.AverageAsync(e => e.Salary);
+                stats.AverageSalary = await _context.Employees
+                    .Where(e => e.Role != EmployeeRole.Admin && e.Salary > 0)
+                    .AverageAsync(e => e.Salary);
             }
+
+            //son eklenen personeller admin hariç
+            stats.RecentEmployees = await _context.Employees
+                .Include(e => e.Department)
+                .Where(e => e.Role != EmployeeRole.Admin) 
+                .OrderByDescending(e => e.Id)
+                .Take(5)
+                .ToListAsync();
 
             return stats;
         }

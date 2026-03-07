@@ -10,5 +10,7 @@ namespace HrPanel.Data
         public DbSet<Leave> Leaves { get; set; }
         public DbSet<Position> Positions { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<KanbanTask> KanbanTasks { get; set; }
+        public DbSet<Document> Documents { get; set; }
     }
 }

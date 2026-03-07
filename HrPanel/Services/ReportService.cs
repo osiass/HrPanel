@@ -14,7 +14,12 @@ namespace HrPanel.Services
 
         public async Task<List<Employee>> GetFilteredEmployeesAsync(string? searchTerm, int? deptId, decimal? minSalary)
         {
-            var query = _context.Employees.Include(e => e.Department).Include(e=> e.Position).AsQueryable();
+            // Sorguyu oluştururken en başta admin olanları eliyoruz
+            var query = _context.Employees
+                .Include(e => e.Department)
+                .Include(e => e.Position)
+                .Where(e => e.Role != EmployeeRole.Admin) //admin raporlara görünmesin diye ekledik
+                .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {

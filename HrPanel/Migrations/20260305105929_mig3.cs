@@ -6,46 +6,46 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HrPanel.Migrations
 {
     /// <inheritdoc />
-    public partial class AddLeaveTable : Migration
+    public partial class mig3 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Leaves",
+                name: "KanbanTasks",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    EmployeeId = table.Column<int>(type: "int", nullable: false),
-                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Priority = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
-                    Type = table.Column<int>(type: "int", nullable: false)
+                    AssignedEmployeeId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Leaves", x => x.Id);
+                    table.PrimaryKey("PK_KanbanTasks", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Leaves_Employees_EmployeeId",
-                        column: x => x.EmployeeId,
+                        name: "FK_KanbanTasks_Employees_AssignedEmployeeId",
+                        column: x => x.AssignedEmployeeId,
                         principalTable: "Employees",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Leaves_EmployeeId",
-                table: "Leaves",
-                column: "EmployeeId");
+                name: "IX_KanbanTasks_AssignedEmployeeId",
+                table: "KanbanTasks",
+                column: "AssignedEmployeeId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Leaves");
+                name: "KanbanTasks");
         }
     }
 }

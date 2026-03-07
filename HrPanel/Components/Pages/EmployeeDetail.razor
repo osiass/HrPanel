@@ -1,0 +1,283 @@
+﻿@page "/personel/{Id:int}"
+@attribute [Authorize]
+@using HrPanel.Models
+@using HrPanel.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@inject EmployeeService EmpService
+@inject DocumentService DocService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="container-fluid">
+    @if (employee == null)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Personel bilgileri yükleniyor...</p>
+        </div>
+    }
+    else
+    {
+        <!-- ÜST PROFİL-->
+        <div class="card shadow-sm border-0 mb-4 overflow-hidden">
+            <div class="card-body p-0">
+                <div class="row g-0">
+                    <div class="col-md-2 bg-light d-flex align-items-center justify-content-center p-4 border-end">
+                        <img src="https://ui-avatars.com/api/?name=@employee.FullName&size=128&background=random"
+                             class="rounded-circle shadow" width="120" />
+                    </div>
+                    <div class="col-md-10 p-4">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h3 class="fw-bold mb-1">@employee.FullName</h3>
+                                <p class="text-muted mb-2">@employee.Position?.Name | @employee.Department?.Name</p>
+                                <span class="badge @(employee.IsActive ? "bg-success" : "bg-danger")">
+                                    @(employee.IsActive ? "Aktif Çalışan" : "Pasif")
+                                </span>
+                            </div>
+                            <button class="btn btn-outline-secondary" @onclick='() => Nav.NavigateTo("/personeller")'>
+                                <i class="bi bi-arrow-left"></i> Geri Dön
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEKMELİ İÇERİK -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white">
+                <ul class="nav nav-tabs card-header-tabs" id="employeeTabs">
+                    <li class="nav-item">
+                        <button class="nav-link @(activeTab == "genel" ? "active fw-bold" : "")" @onclick='() => activeTab = "genel"'>Genel Bilgiler</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(activeTab == "izinler" ? "active fw-bold" : "")" @onclick='() => activeTab = "izinler"'>İzin Geçmişi</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(activeTab == "org" ? "active fw-bold" : "")" @onclick='() => activeTab = "org"'>Organizasyon</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(activeTab == "belgeler" ? "active fw-bold" : "")" @onclick='() => activeTab = "belgeler"'>Belgeler</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body p-4">
+                @if (activeTab == "genel")
+                {
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-bold">E-Posta Adresi</label>
+                            <p class="fs-5 border-bottom pb-2">@(employee.Email ?? "Girilmemiş")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-bold">T.C. Kimlik No</label>
+                            <p class="fs-5 border-bottom pb-2">@(employee.IdentityNumber ?? "-")</p>
+                        </div>
+
+                        @* maaşı gizleme*@
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <div class="col-md-6">
+                                    <label class="text-muted small text-uppercase fw-bold text-danger">Maaş Bilgisi (Özel)</label>
+                                    <p class="fs-5 border-bottom pb-2 text-success fw-bold">@employee.Salary.ToString("C2")</p>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-bold">Adres</label>
+                            <p class="fs-5 border-bottom pb-2">@(employee.Address ?? "-")</p>
+                        </div>
+                    </div>
+                }
+                else if (activeTab == "izinler")
+                {
+                    @* izinler *@
+                    <table class="table table-hover mt-3">
+                        <thead class="table-light small text-uppercase">
+                            <tr>
+                                <th>İzin Türü</th>
+                                <th>Başlangıç</th>
+                                <th>Bitiş</th>
+                                <th>İşlem Durumu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @* employee.Leaves null ise boş liste dönerek crash engellendi *@
+                            @foreach (var leave in (employee.Leaves ?? new List<Leave>()))
+                            {
+                                <tr>
+                                    @* Teknik kelimeleri çevir*@
+                                    <td><strong>@GetLeaveTypeDisplayName(leave.Type)</strong></td>
+                                    <td>@leave.StartDate.ToShortDateString()</td>
+                                    <td>@leave.EndDate.ToShortDateString()</td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(leave.Status) px-3 py-2">
+                                            @GetStatusDisplayName(leave.Status)
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else if (activeTab == "org")
+                {
+                    @* organşzasyon*@
+                    <div class="p-3 bg-light rounded">
+                        <h6 class="fw-bold"><i class="bi bi-person-badge"></i> Doğrudan Bağlı Olduğu Amir</h6>
+                        <p>@(employee.Manager?.FullName ?? "Atanmamış")</p>
+                        <hr />
+                        <h6 class="fw-bold"><i class="bi bi-people"></i> Bağlı Çalışanlar (Ekibi)</h6>
+                        <ul>
+                            @* Subordinates null ise crash engellendi *@
+                            @foreach (var sub in (employee.Subordinates ?? new List<Employee>()))
+                            {
+                                <li>@sub.FullName - @(sub.Position?.Name ?? "Ünvan Belirtilmemiş")</li>
+                            }
+                        </ul>
+                    </div>
+                }
+                else if (activeTab == "belgeler")
+                {
+                    @*belge yükleme alanı*@
+                    <div class="upload-area p-4 border border-2 border-dashed rounded text-center bg-light mb-4">
+                        <i class="bi bi-cloud-arrow-up fs-2 text-primary"></i>
+                        <h6 class="mt-2">Dosya Yükle</h6>
+                        <InputFile OnChange="HandleFileSelected" class="form-control form-control-sm mt-2 mx-auto" style="max-width:300px" />
+                        @if (isUploading)
+                        {
+                            <div class="mt-2 small text-primary"><span class="spinner-border spinner-border-sm"></span> Yükleniyor...</div>
+                        }
+                    </div>
+
+                    @*belgeler listesi*@
+                    <div class="row g-3">
+                        @foreach (var doc in (documents ?? new List<Document>()))
+                        {
+                            <div class="col-md-4">
+                                <div class="card shadow-sm border">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <i class="bi bi-file-earmark-text text-primary fs-2 me-3"></i>
+                                            <div class="overflow-hidden">
+                                                <div class="fw-bold small text-truncate" title="@doc.FileName">@doc.FileName</div>
+                                                <small class="text-muted">@doc.UploadDate.ToShortDateString()</small>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-primary btn-sm flex-fill" @onclick="() => DownloadDoc(doc.Id, doc.FileName)"><i class="bi bi-download"></i> İndir</button>
+                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteDoc(doc.Id)"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Employee? employee;
+    private List<Document> documents = new();
+    private string activeTab = "genel";
+    private bool isUploading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEmployeeData();
+        await LoadDocuments();
+    }
+
+    private async Task LoadEmployeeData()
+    {
+        // Servis üzerinden tüm ilişkileriyle beraber personeli çekiyoruz
+        try
+        {
+            employee = await EmpService.GetEmployeeWithDetailsAsync(Id);
+        }
+        catch
+        {
+            employee = null; // Hata durumunda null set ederek spinner'ın dönmesini sağla
+        }
+    }
+
+    private async Task LoadDocuments()
+    {
+        try
+        {
+            documents = await DocService.GetEmployeeDocumentsAsync(Id);
+        }
+        catch
+        {
+            documents = new();
+        }
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        isUploading = true;
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                using var stream = file.OpenReadStream(1024 * 1024 * 10); // Max 10MB
+                await DocService.SaveDocumentAsync(stream, file.Name, Id);
+                await LoadDocuments();
+            }
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private async Task DownloadDoc(int docId, string fileName)
+    {
+        var fileBytes = await DocService.GetFileBytesAsync(docId);
+        if (fileBytes != null)
+        {
+            using var streamRef = new DotNetStreamReference(new MemoryStream(fileBytes));
+            await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        }
+    }
+
+    private async Task DeleteDoc(int docId)
+    {
+        await DocService.DeleteDocumentAsync(docId);
+        await LoadDocuments();
+    }
+
+    private string GetLeaveTypeDisplayName(LeaveType type) => type switch
+    {
+        LeaveType.Annual => "Yıllık İzin",
+        LeaveType.Sick => "Sağlık / Rapor",
+        LeaveType.Unpaid => "Ücretsiz İzin",
+        _ => "Diğer"
+    };
+
+    private string GetStatusDisplayName(LeaveStatus status) => status switch
+    {
+        LeaveStatus.PendingManager => "Yönetici Onayı Bekliyor",
+        LeaveStatus.PendingHR => "İK Onayı Bekliyor",
+        LeaveStatus.Approved => "Onaylandı",
+        LeaveStatus.Rejected => "Reddedildi",
+        _ => "Bilinmiyor"
+    };
+
+    private string GetStatusBadgeClass(LeaveStatus status) => status switch
+    {
+        LeaveStatus.PendingManager => "bg-warning text-dark",
+        LeaveStatus.PendingHR => "bg-info text-dark",
+        LeaveStatus.Approved => "bg-success",
+        LeaveStatus.Rejected => "bg-danger",
+        _ => "bg-secondary"
+    };
+}

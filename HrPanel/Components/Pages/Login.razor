@@ -1,5 +1,6 @@
 ﻿@page "/login"
 @layout EmptyLayout
+@using HrPanel.Models
 @using HrPanel.Services
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -43,13 +44,16 @@
 
         if (user != null)
         {
-            var authProvider = (HrPanel.Services.AuthStateProvider)AuthStateProvider;
-            authProvider.NotifyUserLogin(user.Username);
+            var authProvider = (AuthStateProvider)AuthStateProvider;
+
+            await authProvider.NotifyUserLogin(user.Username, user.Role, user.EmployeeId.ToString());
+
             Nav.NavigateTo("/");
         }
         else
         {
-            errorMessage = "Hatalı kullanıcı adı veya şifre.";
+            errorMessage = "Hatalı giriş!";
         }
     }
+
 }

@@ -1,0 +1,29 @@
+﻿@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // race condition localstorega okunması için 500ms mola.
+            // Bu sırada kullanıcı ekranda spinner görecek.
+            await Task.Delay(500);
+
+            //güncel durumu kontrol et 
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+
+			//Eğer bekleme sonunda hala giriş yapılmamışsa login sayfasına yönlendir.
+            if (!isAuthenticated)
+            {
+                var currentPath = Navigation.ToBaseRelativePath(Navigation.Uri).ToLower();
+                if (!currentPath.Contains("login"))
+                {
+                    Navigation.NavigateTo("login");
+                }
+            }
+
+        }
+    }
+}
