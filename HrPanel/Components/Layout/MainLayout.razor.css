@@ -1,25 +1,31 @@
-:root {
-    --sidebar-bg: #1a1c23;
-    --sidebar-hover: #2d2f39;
-    --header-bg: #ffffff;
-    --content-bg: #f4f7fe;
-    --accent-color: #4e73df;
-}
-
 .page {
     display: flex;
     height: 100vh;
-    background-color: var(--content-bg);
+    background-color: var(--hr-bg-light);
 }
 
 .sidebar {
     width: 260px;
-    background-color: var(--sidebar-bg);
+    background-color: var(--hr-bg-dark);
     color: white;
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
-    box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+
+    /* Uzayıp taştığında arka planın bozulmamasını ve scroll edilmesini sağlar */
+    height: 100vh;
+    overflow-y: auto;
+}
+
+/* Sidebar için şık ve ince bir scrollbar */
+.sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
 }
 
 .main {
@@ -31,12 +37,12 @@
 
 .top-bar {
     height: 70px;
-    background-color: var(--header-bg);
+    background-color: var(--hr-card-bg);
     display: flex;
     align-items: center;
     padding: 0 30px;
     justify-content: space-between;
-    box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
     z-index: 100;
 }
 
@@ -48,10 +54,10 @@
     background: white;
     border-radius: 15px;
     border: none;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.03);
     transition: transform 0.2s;
 }
 
-    .custom-card:hover {
-        transform: translateY(-5px);
-    }
+.custom-card:hover {
+    transform: translateY(-5px);
+}

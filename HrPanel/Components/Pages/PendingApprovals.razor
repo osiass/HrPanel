@@ -1,0 +1,242 @@
+@page "/onay-bekleyenler"
+@attribute [Authorize(Roles = "Admin, Manager")]
+@using HrPanel.Models
+@using HrPanel.Services
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@inject LeaveService LeaveService
+@inject AdvanceService AdvanceService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="container mt-4 animate__animated animate__fadeIn">
+    @* Onay bekleyenler sayfası için fade-in efekti *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-check-circle-fill text-success me-2"></i>Onay Bekleyen Talepler
+        </h3>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill">
+            Toplam @(pendingLeaves.Count + pendingAdvances.Count) Bekleyen İşlem
+        </span>
+    </div>
+
+    <!-- ÖZET KARTLARI -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card glass-card border-0 shadow-sm p-3 border-start border-4 border-warning">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning me-3">
+                        <i class="bi bi-calendar-event"></i>
+                    </div>
+                    <div>
+                        <div class="small text-muted fw-bold">İzin Talepleri</div>
+                        <div class="h4 mb-0 fw-bold">@pendingLeaves.Count</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card glass-card border-0 shadow-sm p-3 border-start border-4 border-primary">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary me-3">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <div>
+                        <div class="small text-muted fw-bold">Avans Talepleri</div>
+                        <div class="h4 mb-0 fw-bold">@pendingAdvances.Count</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- İZİN TALEPLERİ LİSTESİ -->
+    <div class="card glass-card border-0 shadow-sm mb-4 animate__animated animate__fadeInUp">
+        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold text-warning"><i class="bi bi-calendar-check me-2"></i>Bekleyen İzinler</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light small text-muted text-uppercase">
+                        <tr>
+                            <th class="ps-4">Personel</th>
+                            <th>Tür</th>
+                            <th>Tarih Aralığı</th>
+                            <th>Açıklama</th>
+                            <th class="text-end pe-4">İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!pendingLeaves.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted small">Onay bekleyen izin talebi bulunmuyor.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var leave in pendingLeaves)
+                            {
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="fw-bold">@leave.Employee?.FullName</div>
+                                        <div class="small text-muted">@leave.Employee?.Department?.Name</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2">
+                                            @switch (leave.Type)
+                                            {
+                                                case LeaveType.Annual: <span>Yıllık İzin</span> break;
+                                                case LeaveType.Sick: <span>Hastalık / Rapor</span> break;
+                                                case LeaveType.Unpaid: <span>Ücretsiz İzin</span> break;
+                                                default: <span>@leave.Type</span> break;
+                                            }
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="small">@leave.StartDate.ToShortDateString() - @leave.EndDate.ToShortDateString()</div>
+                                        <div class="small text-muted">(@((leave.EndDate - leave.StartDate).Days + 1) Gün)</div>
+                                    </td>
+                                    <td class="small text-truncate" style="max-width: 200px;">@leave.Description</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group shadow-sm">
+                                            <button class="btn btn-sm btn-success px-3" @onclick="() => ApproveLeave(leave.Id)">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger px-3" @onclick="() => RejectLeave(leave.Id)">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- AVANS TALEPLERİ LİSTESİ -->
+    <div class="card glass-card border-0 shadow-sm animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+        <div class="card-header bg-white border-0 py-3">
+            <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-wallet2 me-2"></i>Bekleyen Avanslar</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light small text-muted text-uppercase">
+                        <tr>
+                            <th class="ps-4">Personel</th>
+                            <th>Tutar</th>
+                            <th>Taksit</th>
+                            <th>Sebep</th>
+                            <th class="text-end pe-4">İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!pendingAdvances.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted small">Onay bekleyen avans talebi bulunmuyor.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var adv in pendingAdvances)
+                            {
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="fw-bold">@adv.Employee?.FullName</div>
+                                        <div class="small text-muted">@adv.RequestDate.ToShortDateString()</div>
+                                    </td>
+                                    <td><span class="fw-bold">@adv.Amount.ToString("C0")</span></td>
+                                    <td>@adv.InstallmentCount Taksit</td>
+                                    <td class="small text-truncate" style="max-width: 200px;">@adv.Description</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group shadow-sm">
+                                            <button class="btn btn-sm btn-success px-3" @onclick="() => ApproveAdvance(adv.Id)">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger px-3" @onclick="() => RejectAdvance(adv.Id)">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 1.5rem;
+    }
+</style>
+
+@code {
+    // Onay bekleyen izinler ve avanslar için iki ayrı liste 
+    private List<Leave> pendingLeaves = new();
+    private List<AdvanceRequest> pendingAdvances = new();
+    
+    private int currentUserId;
+    private EmployeeRole currentUserRole;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Kullanıcı yetkisine göre bekleyen talepleri yükle
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var roleClaim = user.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userIdClaim != null && roleClaim != null)
+        {
+            currentUserId = int.Parse(userIdClaim);
+            currentUserRole = Enum.Parse<EmployeeRole>(roleClaim);
+            await LoadPendingRequests();
+        }
+    }
+
+    private async Task LoadPendingRequests()
+    {
+        pendingLeaves = await LeaveService.GetPendingLeavesAsync(currentUserId, currentUserRole);
+        pendingAdvances = await AdvanceService.GetPendingAdvancesAsync(currentUserId, currentUserRole);
+    }
+
+    private async Task ApproveLeave(int id)
+    {
+        await LeaveService.ProcessApprovalAsync(id, true, "Onaylandı");
+        await LoadPendingRequests();
+    }
+
+    private async Task RejectLeave(int id)
+    {
+        await LeaveService.ProcessApprovalAsync(id, false, "Reddedildi");
+        await LoadPendingRequests();
+    }
+
+    private async Task ApproveAdvance(int id)
+    {
+        await AdvanceService.ProcessAdvanceApprovalAsync(id, true, "Onaylandı");
+        await LoadPendingRequests();
+    }
+
+    private async Task RejectAdvance(int id)
+    {
+        await AdvanceService.ProcessAdvanceApprovalAsync(id, false, "Bütçe kısıtı nedeniyle reddedildi.");
+        await LoadPendingRequests();
+    }
+}

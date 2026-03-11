@@ -1,0 +1,278 @@
+@page "/avans"
+@attribute [Authorize]
+@using HrPanel.Models
+@using HrPanel.Services
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AdvanceService AdvanceService
+@inject EmployeeService EmployeeService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="container mt-4 animate__animated animate__fadeIn">
+    @* Sayfa girişi için hafif fade-in efekti *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0"><i class="bi bi-wallet2 text-primary me-2"></i>Avans Talepleri</h3>
+        <div class="badge bg-primary bg-opacity-10 text-primary py-2 px-3 rounded-pill d-none d-md-block">
+            <i class="bi bi-info-circle me-1"></i> Maaşınızın %50'sine kadar avans çekebilirsiniz.
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- AVANS TALEP FORMU -->
+        <div class="col-md-4">
+            <div class="card glass-card border-0 shadow-sm animate__animated animate__fadeInLeft">
+                <div class="card-header bg-dark text-white fw-bold py-3">
+                    <i class="bi bi-plus-lg me-2"></i>Yeni Avans Talebi
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Personel</label>
+                        <!-- normal bir çalışansa sadece kendi adını görür ve değiştiremez readonly -->
+                        <AuthorizeView Roles="Employee">
+                            <Authorized>
+                                <input type="text" class="form-control bg-light border-0" value="@currentEmployeeName" readonly />
+                            </Authorized>
+                        </AuthorizeView>
+                        <AuthorizeView Roles="Admin, Manager">
+                            <Authorized>
+                                <select class="form-select bg-light border-0" @bind="newRequest.EmployeeId">
+                                    <option value="0">Personel Seçiniz...</option>
+                                    @foreach (var emp in employeeList)
+                                    {
+                                        <option value="@emp.Id">@emp.FullName</option>
+                                    }
+                                </select>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Avans Tutarı (TL)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0">₺</span>
+                            <input type="number" class="form-control bg-light border-0" @bind="newRequest.Amount" placeholder="Örn: 5000" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Taksit Sayısı</label>
+                        <select class="form-select bg-light border-0" @bind="newRequest.InstallmentCount">
+                            <option value="1">Tek Seferde (1 Taksit)</option>
+                            <option value="2">2 Taksit</option>
+                            <option value="3">3 Taksit</option>
+                            <option value="4">4 Taksit</option>
+                            <option value="5">5 Taksit</option>
+                            <option value="6">6 Taksit</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Açıklama / Sebep</label>
+                        <textarea class="form-control bg-light border-0" rows="3" @bind="newRequest.Description" placeholder="Örn: Sağlık giderleri, okul masrafı..."></textarea>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger py-2 small animate__animated animate__shakeX">
+                            <i class="bi bi-exclamation-circle me-1"></i> @errorMessage
+                        </div>
+                    }
+
+                    <button class="btn btn-primary w-100 py-2 fw-bold shadow-sm" @onclick="SubmitRequest">
+                        <i class="bi bi-send-fill me-2"></i>Talebi Gönder
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AVANS LİSTESİ -->
+        <div class="col-md-8">
+            <div class="card glass-card border-0 shadow-sm animate__animated animate__fadeInRight">
+                <div class="card-header bg-white border-0 py-3 fw-bold">
+                    <i class="bi bi-list-ul me-2"></i>Geçmiş Talepler
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light small text-muted text-uppercase">
+                                <tr>
+                                    <th class="ps-4">Personel</th>
+                                    <th>Tutar</th>
+                                    <th>Taksit</th>
+                                    <th>Durum</th>
+                                    <th class="text-end pe-4">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (advanceRequests == null || !advanceRequests.Any())
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center py-5 text-muted">
+                                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                            Henüz bir avans talebi bulunmuyor.
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var request in advanceRequests)
+                                    {
+                                        <tr>
+                                            <td class="ps-4">
+                                                <div class="fw-bold">@request.Employee?.FullName</div>
+                                                <div class="small text-muted">@request.RequestDate.ToShortDateString()</div>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold text-dark">@request.Amount.ToString("C0")</span>
+                                            </td>
+                                            <td>@request.InstallmentCount Taksit</td>
+                                            <td>
+                                                @if (request.Status == AdvanceStatus.Pending)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3">Bekliyor</span>
+                                                }
+                                                else if (request.Status == AdvanceStatus.Approved)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3">Onaylandı</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3">Reddedildi</span>
+                                                }
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                @if (request.Status == AdvanceStatus.Pending)
+                                                {
+                                                    <AuthorizeView Roles="Admin, Manager">
+                                                        <Authorized>
+                                                            <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+                                                                <button class="btn btn-sm btn-success border-0 px-3" @onclick="() => ProcessRequest(request.Id, true)">
+                                                                    <i class="bi bi-check-lg"></i>
+                                                                </button>
+                                                                <button class="btn btn-sm btn-danger border-0 px-3" @onclick="() => ProcessRequest(request.Id, false)">
+                                                                    <i class="bi bi-x-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </Authorized>
+                                                    </AuthorizeView>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<AdvanceRequest> advanceRequests = new();
+    private List<Employee> employeeList = new();
+    
+    private AdvanceRequest newRequest = new AdvanceRequest { RequestDate = DateTime.Now, InstallmentCount = 1 };
+    
+    private string currentEmployeeName = "";
+    private string errorMessage = "";
+    private int currentUserId;
+    private EmployeeRole currentUserRole;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Sayfa açıldığında giriş yapan kullanıcının bilgilerini ve rolünü al
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        // Sisteme giren kişinin ID'sini ve Rolünü buluyoruz
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var roleClaim = user.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userIdClaim != null && roleClaim != null)
+        {
+            currentUserId = int.Parse(userIdClaim);
+            currentUserRole = Enum.Parse<EmployeeRole>(roleClaim);
+
+            var me = await EmployeeService.GetEmployeeByIdAsync(currentUserId);
+            currentEmployeeName = me?.FullName ?? "";
+
+            if (currentUserRole == EmployeeRole.Employee)
+            {
+                newRequest.EmployeeId = currentUserId;
+            }
+        }
+
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (currentUserRole == EmployeeRole.Employee)
+        {
+            advanceRequests = await AdvanceService.GetMyAdvancesAsync(currentUserId);
+        }
+        else
+        {
+            // Admin veya Manager ise onay bekleyenleri ve tüm süreci görsün
+            var allAdvances = await AdvanceService.GetAllAdvancesAsync();
+            
+            if (currentUserRole == EmployeeRole.Admin)
+            {
+                advanceRequests = allAdvances;
+                employeeList = await EmployeeService.GetAllEmployeesAsync();
+            }
+            else if (currentUserRole == EmployeeRole.Manager)
+            {
+                // Manager sadece kendi personelinin taleplerini görsün
+                advanceRequests = allAdvances.Where(a => a.Employee.ManagerId == currentUserId || a.EmployeeId == currentUserId).ToList();
+                var allEmployees = await EmployeeService.GetAllEmployeesAsync();
+                employeeList = allEmployees.Where(e => e.ManagerId == currentUserId || e.Id == currentUserId).ToList();
+            }
+        }
+    }
+
+    private async Task SubmitRequest()
+    {
+        errorMessage = "";
+        
+        // Employee ise formdaki hatalı seçimleri engelle
+        if (currentUserRole == EmployeeRole.Employee)
+        {
+            newRequest.EmployeeId = currentUserId;
+        }
+
+        if (newRequest.EmployeeId == 0)
+        {
+            errorMessage = "Lütfen bir personel seçiniz.";
+            return;
+        }
+        if (newRequest.Amount <= 0)
+        {
+            errorMessage = "Lütfen geçerli bir tutar giriniz.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(newRequest.Description))
+        {
+            errorMessage = "Lütfen bir açıklama belirtiniz.";
+            return;
+        }
+
+        await AdvanceService.AddAdvanceRequestAsync(newRequest);
+        
+        newRequest = new AdvanceRequest { RequestDate = DateTime.Now, InstallmentCount = 1 };
+        if (currentUserRole == EmployeeRole.Employee) newRequest.EmployeeId = currentUserId;
+        
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private async Task ProcessRequest(int id, bool isApproved)
+    {
+        await AdvanceService.ProcessAdvanceApprovalAsync(id, isApproved, isApproved ? "Onaylandı" : "Bütçe kısıtı nedeniyle reddedildi.");
+        await LoadData();
+        StateHasChanged();
+    }
+}
+

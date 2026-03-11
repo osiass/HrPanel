@@ -12,5 +12,10 @@ namespace HrPanel.Data
         public DbSet<User> Users { get; set; }
         public DbSet<KanbanTask> KanbanTasks { get; set; }
         public DbSet<Document> Documents { get; set; }
+        public DbSet<AdvanceRequest> AdvanceRequests { get; set; }
+        public DbSet<EmployeeEducation> EmployeeEducations { get; set; }
+        public DbSet<SupportRequest> SupportRequests { get; set; }
+        public DbSet<Announcement> Announcements { get; set; }
+        public DbSet<CompanyEvent> CompanyEvents { get; set; }
     }
 }

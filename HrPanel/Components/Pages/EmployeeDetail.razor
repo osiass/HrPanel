@@ -8,8 +8,11 @@
 @inject DocumentService DocService
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject EducationService EduService
+@inject AdvanceService AdvService
 
-<div class="container-fluid">
+<div class="container-fluid animate__animated animate__fadeIn">
+    @* Sayfa yüklendiğinde içerik hafifçe belirir *@
     @if (employee == null)
     {
         <div class="text-center mt-5">
@@ -59,12 +62,23 @@
                         <button class="nav-link @(activeTab == "org" ? "active fw-bold" : "")" @onclick='() => activeTab = "org"'>Organizasyon</button>
                     </li>
                     <li class="nav-item">
+                        <button class="nav-link @(activeTab == "kariyer" ? "active fw-bold" : "")" @onclick='() => activeTab = "kariyer"'>Kariyer</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(activeTab == "odeme" ? "active fw-bold" : "")" @onclick='() => activeTab = "odeme"'>Ödemeler/Avans</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(activeTab == "egitim" ? "active fw-bold" : "")" @onclick='() => activeTab = "egitim"'>Eğitimler</button>
+                    </li>
+                    <li class="nav-item">
                         <button class="nav-link @(activeTab == "belgeler" ? "active fw-bold" : "")" @onclick='() => activeTab = "belgeler"'>Belgeler</button>
                     </li>
                 </ul>
             </div>
             <div class="card-body p-4">
-                @if (activeTab == "genel")
+                @* Sekme içeriği değiştikçe giriş efekti *@
+                <div class="animate__animated animate__fadeIn" @key="activeTab">
+                    @if (activeTab == "genel")
                 {
                     <div class="row g-4">
                         <div class="col-md-6">
@@ -140,6 +154,176 @@
                         </ul>
                     </div>
                 }
+                else if (activeTab == "kariyer")
+                {
+                    @*kariyer geçmişi*@
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-bold">Mevcut Pozisyon</label>
+                            <p class="fs-5 border-bottom pb-2">@(employee.Position?.Name ?? "-")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-bold">Departman</label>
+                            <p class="fs-5 border-bottom pb-2">@(employee.Department?.Name ?? "-")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-bold">Yöneticisi</label>
+                            <p class="fs-5 border-bottom pb-2">@(employee.Manager?.FullName ?? "Üst Yöneticisi Yok")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-bold">İşe Giriş Tarihi</label>
+                            <p class="fs-5 border-bottom pb-2">@employee.HireDate.ToShortDateString()</p>
+                        </div>
+                    </div>
+                }
+                else if (activeTab == "odeme")
+                {
+                    @* ödeme ve avans geçmişi *@
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-primary"><i class="bi bi-cash-stack me-2"></i>Maaş Bilgisi</h6>
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <p class="h4 text-success fw-bold">@employee.Salary.ToString("C2")</p>
+                            </Authorized>
+                            <NotAuthorized>
+                                <p class="text-muted italic">Bu bilgiyi görme yetkiniz yok.</p>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                    </div>
+
+                    <h6 class="fw-bold mt-4 mb-3"><i class="bi bi-wallet2 me-2"></i>Avans Talepleri</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="bg-light small">
+                                <tr>
+                                    <th>Tutar</th>
+                                    <th>Taksit</th>
+                                    <th>Tarih</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (advanceRequests == null || !advanceRequests.Any())
+                                {
+                                    <tr><td colspan="4" class="text-center text-muted small">Avans talebi bulunamadı.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var adv in advanceRequests)
+                                    {
+                                        <tr>
+                                            <td class="fw-bold">@adv.Amount.ToString("C0")</td>
+                                            <td>@adv.InstallmentCount</td>
+                                            <td>@adv.RequestDate.ToShortDateString()</td>
+                                            <td>
+                                                <span class="badge @(adv.Status == AdvanceStatus.Approved ? "bg-success" : (adv.Status == AdvanceStatus.Pending ? "bg-warning text-dark" : "bg-danger"))">
+                                                    @adv.Status
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else if (activeTab == "egitim")
+                {
+                    @* eğitimler listesi *@
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-mortarboard me-2"></i>Eğitim ve Sertifikalar</h6>
+                        
+                        @* Admin veya Manager için veri ekleme butonu *@
+                        <AuthorizeView Roles="Admin, Manager">
+                            <Authorized>
+                                <button class="btn btn-sm btn-primary" @onclick="() => showEducationForm = !showEducationForm">
+                                    <i class="bi @(showEducationForm ? "bi-x-lg" : "bi-plus-lg") me-1"></i>
+                                    @(showEducationForm ? "Kapat" : "Yeni Kayıt")
+                                </button>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+
+                    @if (showEducationForm)
+                    {
+                        <div class="card bg-light border-0 mb-4 animate__animated animate__fadeInDown">
+                            <div class="card-body">
+                                <h6 class="fw-bold small mb-3">Yeni Eğitim Kaydı Ekle</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Eğitim / Kurs Adı</label>
+                                        <input type="text" class="form-control form-control-sm" @bind="newEducation.CourseName" placeholder="Zaman Yönetimi..." />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Eğitim Kurumu</label>
+                                        <input type="text" class="form-control form-control-sm" @bind="newEducation.Provider" placeholder="Udemy, BilgeAdam..." />
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small">Durum</label>
+                                        <select class="form-select form-select-sm" @bind="newEducation.Status">
+                                            <option value="Devam Ediyor">Devam Ediyor</option>
+                                            <option value="Tamamlandı">Tamamlandı</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small">Bitiş Tarihi</label>
+                                        <input type="date" class="form-control form-control-sm" @bind="newEducation.CompletionDate" />
+                                    </div>
+                                    <div class="col-md-1 d-flex align-items-end">
+                                        <button class="btn btn-sm btn-success w-100" @onclick="SaveEducation">Kaydet</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="bg-light small">
+                                <tr>
+                                    <th>Eğitim Adı</th>
+                                    <th>Kurum</th>
+                                    <th>Durum</th>
+                                    <th>Tarih</th>
+                                    <AuthorizeView Roles="Admin, Manager">
+                                        <Authorized>
+                                            <th class="text-end pe-3">İşlem</th>
+                                        </Authorized>
+                                    </AuthorizeView>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (educationList == null || !educationList.Any())
+                                {
+                                    <tr><td colspan="5" class="text-center text-muted small">Henüz eğitim kaydı bulunmuyor.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var edu in educationList)
+                                    {
+                                        <tr>
+                                            <td class="fw-bold text-dark">@edu.CourseName</td>
+                                            <td>@edu.Provider</td>
+                                            <td>
+                                                <span class="badge @(edu.Status == "Tamamlandı" ? "bg-success" : "bg-warning text-dark")">@edu.Status</span>
+                                            </td>
+                                            <td>@(edu.CompletionDate?.ToShortDateString() ?? "-")</td>
+                                            <AuthorizeView Roles="Admin, Manager">
+                                                <Authorized>
+                                                    <td class="text-end pe-3">
+                                                        <button class="btn btn-sm btn-outline-danger border-0" @onclick="() => DeleteEducation(edu.Id)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </Authorized>
+                                            </AuthorizeView>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
                 else if (activeTab == "belgeler")
                 {
                     @*belge yükleme alanı*@
@@ -177,22 +361,34 @@
                         }
                     </div>
                 }
+                </div> 
             </div>
-        </div>
+        </div> 
     }
 </div>
 
 @code {
-    [Parameter] public int Id { get; set; }
+    [Parameter] public int Id { get; set; }///personel-detay/5 
+ 
     private Employee? employee;
     private List<Document> documents = new();
-    private string activeTab = "genel";
+    private List<AdvanceRequest> advanceRequests = new();
+    private List<EmployeeEducation> educationList = new();
+    
+    // Form için boş bir eğitim nesnesi 
+    private EmployeeEducation newEducation = new() { Status = "Tamamlandı", CompletionDate = DateTime.Now };
+    
+    private string activeTab = "genel"; // Varsayılan olarak Genel Bilgiler sekmesi açık gelir
     private bool isUploading = false;
+    private bool showEducationForm = false;
 
     protected override async Task OnInitializedAsync()
     {
+
         await LoadEmployeeData();
         await LoadDocuments();
+        await LoadAdvanceRequests();
+        await LoadEducationRecords();
     }
 
     private async Task LoadEmployeeData()
@@ -218,6 +414,34 @@
         {
             documents = new();
         }
+    }
+
+    private async Task LoadAdvanceRequests()
+    {
+        advanceRequests = await AdvService.GetMyAdvancesAsync(Id);
+    }
+
+    private async Task LoadEducationRecords()
+    {
+        educationList = await EduService.GetEmployeeEducationsAsync(Id);
+    }
+
+    private async Task SaveEducation()
+    {
+        if (string.IsNullOrWhiteSpace(newEducation.CourseName)) return;
+
+        newEducation.EmployeeId = Id;
+        await EduService.AddEducationAsync(newEducation);
+        
+        newEducation = new EmployeeEducation { Status = "Tamamlandı", CompletionDate = DateTime.Now };
+        showEducationForm = false;
+        await LoadEducationRecords();
+    }
+
+    private async Task DeleteEducation(int id)
+    {
+        await EduService.DeleteEducationAsync(id);
+        await LoadEducationRecords();
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)

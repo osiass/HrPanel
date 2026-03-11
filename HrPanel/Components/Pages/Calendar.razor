@@ -1,0 +1,220 @@
+@page "/takvim"
+@attribute [Authorize]
+@using HrPanel.Models
+@using HrPanel.Services
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@inject EventService EventService
+@inject NavigationManager Nav
+
+<div class="container-fluid animate__animated animate__fadeIn">
+    @*takvim başlığı ve navigasyon *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="bi bi-calendar3 me-2 text-primary"></i>Etkinlik Takvimi</h2>
+            <p class="text-muted small mb-0">Şirket içi etkinlikleri, tatilleri ve özel günleri buradan takip edebilirsiniz.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary shadow-sm" @onclick="PrevMonth">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <div class="btn btn-dark px-4 fw-bold">
+                @currentDate.ToString("MMMM yyyy", new CultureInfo("tr-TR"))
+            </div>
+            <button class="btn btn-outline-primary shadow-sm" @onclick="NextMonth">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <button class="btn btn-success ms-3 shadow-sm" @onclick="() => showAddModal = true">
+                        <i class="bi bi-calendar-plus me-2"></i>Yeni Etkinlik
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </div>
+
+    @*takvim *@
+    <div class="card glass-card border-0 shadow-sm overflow-hidden">
+        <div class="card-body p-0">
+            <div class="calendar-grid">
+                @*haftanın günleri*@
+                <div class="calendar-header-row bg-light border-bottom">
+                    @foreach (var day in dayNames)
+                    {
+                        <div class="calendar-header-cell text-center py-3 small fw-bold text-muted text-uppercase">@day</div>
+                    }
+                </div>
+
+                @* Günler*@
+                <div class="calendar-days-row d-flex flex-wrap">
+                    @*Boşluklar*@
+                    @for (int i = 0; i < offset; i++)
+                    {
+                        <div class="calendar-day-cell bg-light bg-opacity-25 border-end border-bottom" style="width: 14.28%; height: 120px;"></div>
+                    }
+
+                    @*Ayın Günleri*@
+                    @for (int day = 1; day <= daysInMonth; day++)
+                    {
+                        var currentDay = new DateTime(currentDate.Year, currentDate.Month, day);
+                        var isToday = currentDay.Date == DateTime.Today;
+                        var dayEvents = events.Where(e => e.StartDate.Date == currentDay.Date).ToList();
+
+                        <div class="calendar-day-cell p-2 border-end border-bottom @(isToday ? "bg-primary bg-opacity-10" : "")" style="width: 14.28%; height: 120px; position: relative;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold @(isToday ? "text-primary" : "text-muted")">@day</span>
+                                @if (isToday)
+                                {
+                                    <span class="badge bg-primary px-2" style="font-size: 0.6rem;">BUGÜN</span>
+                                }
+                            </div>
+                            
+                            @*Etkinlik Listesi*@
+                            <div class="calendar-event-list overflow-auto" style="max-height: 80px;">
+                                @foreach (var ev in dayEvents)
+                                {
+                                    <div class="calendar-event-item px-2 py-1 mb-1 rounded text-white small text-truncate" 
+                                         style="background-color: @ev.Color; font-size: 0.75rem; cursor: pointer;"
+                                         title="@ev.Description">
+                                        @ev.Title
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*yeni etkinlik ekleme modalı*@
+@if (showAddModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg animate__animated animate__zoomIn">
+                <div class="modal-header bg-success text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-calendar-plus me-2"></i>Yeni Etkinlik Ekle</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => showAddModal = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Etkinlik Başlığı</label>
+                        <input type="text" class="form-control" @bind="newEv.Title" placeholder="Örn: Aylık Toplantı" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">Başlangıç Tarihi</label>
+                            <input type="date" class="form-control" @bind="newEv.StartDate" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">Tip</label>
+                            <select class="form-select" @bind="newEv.Type" @oninput="UpdateColor">
+                                <option value="Toplantı">Toplantı</option>
+                                <option value="Eğitim">Eğitim</option>
+                                <option value="Tatil">Resmi Tatil</option>
+                                <option value="Doğum Günü">Doğum Günü</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Açıklama</label>
+                        <textarea class="form-control" rows="3" @bind="newEv.Description" placeholder="Etkinlik detayı..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light px-4" @onclick="() => showAddModal = false">Vazgeç</button>
+                    <button type="button" class="btn btn-success px-4 fw-bold" @onclick="SaveEvent">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private DateTime currentDate = DateTime.Today;
+    private List<CompanyEvent> events = new();
+    private CompanyEvent newEv = new() { StartDate = DateTime.Today, EndDate = DateTime.Today };
+    private bool showAddModal = false;
+
+    private string[] dayNames = { "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar" };
+    private int daysInMonth;
+    private int offset;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        /* Takvim mantığı
+        seçili ayın toplam gün sayısını daysInMonth bul
+        ayın ilk gününün haftanın hangi gününe geldiğini offset bul
+        o aya ait etkinlikleri servisten çek*/
+        daysInMonth = DateTime.DaysInMonth(currentDate.Year, currentDate.Month);
+        
+        //pazartesiyi 0 kabul etmek için 
+        var firstDayOfMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
+        offset = ((int)firstDayOfMonth.DayOfWeek + 6) % 7;
+
+        events = await EventService.GetEventsByMonthAsync(currentDate.Month, currentDate.Year);
+    }
+
+    private async Task PrevMonth()
+    {
+        currentDate = currentDate.AddMonths(-1);
+        await LoadData();
+    }
+
+    private async Task NextMonth()
+    {
+        currentDate = currentDate.AddMonths(1);
+        await LoadData();
+    }
+
+    private void UpdateColor(ChangeEventArgs e)
+    {
+        if (e.Value == null) return;
+        newEv.Type = e.Value.ToString()!;
+        newEv.Color = newEv.Type switch
+        {
+            "Toplantı" => "#4e73df",
+            "Eğitim" => "#1cc88a",
+            "Tatil" => "#f6c23e",
+            "Doğum Günü" => "#e74a3b",
+            _ => "#858796"
+        };
+    }
+
+    private async Task SaveEvent()
+    {
+        if (string.IsNullOrWhiteSpace(newEv.Title)) return;
+        
+        // Renk atamasını garantiye al
+        if (string.IsNullOrEmpty(newEv.Color)) newEv.Color = "#4e73df";
+
+        await EventService.AddEventAsync(newEv);
+        newEv = new CompanyEvent() { StartDate = DateTime.Today, EndDate = DateTime.Today };
+        showAddModal = false;
+        await LoadData();
+    }
+}
+
+<style>
+    .calendar-grid {
+        display: flex;
+        flex-direction: column;
+    }
+    .calendar-header-row {
+        display: flex;
+    }
+    .calendar-header-cell {
+        width: 14.28%;
+    }
+    .last-child-no-border:last-child {
+        border-bottom: none !important;
+    }
+</style>

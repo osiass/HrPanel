@@ -4,11 +4,9 @@ using HrPanel.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
-using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddMudServices();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -34,6 +32,11 @@ builder.Services.AddAuthentication("BoşŞema")
 builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 builder.Services.AddScoped<KanbanService>();
 builder.Services.AddScoped<DocumentService>();
+builder.Services.AddScoped<AdvanceService>();
+builder.Services.AddScoped<EducationService>();
+builder.Services.AddScoped<SupportService>();
+builder.Services.AddScoped<AnnouncementService>();
+builder.Services.AddScoped<EventService>();
 builder.Services.AddScoped<ProtectedLocalStorage>();
 
 var app = builder.Build();

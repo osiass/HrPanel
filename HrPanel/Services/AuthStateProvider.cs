@@ -7,7 +7,9 @@ namespace HrPanel.Services
 {
     public class AuthStateProvider : AuthenticationStateProvider
     {
+        //protected veriyi şifreler local storage'a kaydeder
         private readonly ProtectedLocalStorage _localStorage;
+        // currentuser başlangıçta içi boştur yani herkes anonymoustur
         private ClaimsPrincipal _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
 
         public AuthStateProvider(ProtectedLocalStorage localStorage)
