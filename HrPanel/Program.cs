@@ -38,6 +38,7 @@ builder.Services.AddScoped<SupportService>();
 builder.Services.AddScoped<AnnouncementService>();
 builder.Services.AddScoped<EventService>();
 builder.Services.AddScoped<ProtectedLocalStorage>();
+builder.Services.AddScoped<ThemeService>();
 
 var app = builder.Build();
 

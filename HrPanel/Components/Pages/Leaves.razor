@@ -17,14 +17,14 @@
         <!-- İZİN TALEBİ FORMU -->
         <div class="col-md-4">
             <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-dark text-white">Talep Oluştur</div>
+                <div class="card-header fw-bold">Talep Oluştur</div>
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Personel</label>
                         @if (currentUserRole == EmployeeRole.Employee)
                         {
                             @* Employee ise sadece kendini görür, değiştiremez *@
-                            <input type="text" class="form-control bg-light" value="@employeeList.FirstOrDefault()?.FullName" readonly />
+                            <input type="text" class="form-control" value="@employeeList.FirstOrDefault()?.FullName" readonly />
                         }
                         else
                         {
@@ -76,7 +76,7 @@
         <div class="col-md-8">
             <div class="card shadow-sm border-0">
                 <table class="table table-hover align-middle">
-                    <thead class="table-light small text-uppercase">
+                    <thead class="small text-uppercase">
                         <tr>
                             <th>Personel</th>
                             <th>Tarih Aralığı</th>
@@ -101,17 +101,17 @@
                                     </div>
                                 </td>
                                 <td>@leave.StartDate.ToShortDateString() - @leave.EndDate.ToShortDateString()</td>
-                                <td><span class="badge bg-light text-dark border">@((leave.EndDate - leave.StartDate).Days) Gün</span></td>
+                                <td><span class="badge bg-light border">@((leave.EndDate - leave.StartDate).Days) Gün</span></td>
                                 <td>
                                     @* Statüye göre farklı renklerde badge *@
                                     @if (leave.Status == LeaveStatus.PendingManager)
                                     {
-                                        <span class="badge bg-warning text-dark">Amir Onayı Bekliyor</span>
+                                        <span class="badge bg-warning">Amir Onayı Bekliyor</span>
                                     }
                                     else if (leave.Status == LeaveStatus.PendingHR)
                                     {
 
-                                        <span class="badge bg-info text-dark">İK Onayı Bekliyor</span>
+                                        <span class="badge bg-info">İK Onayı Bekliyor</span>
                                     }
                                     else if (leave.Status == LeaveStatus.Approved)
                                     {

@@ -31,12 +31,12 @@
                         <!-- normal bir çalışansa sadece kendi adını görür ve değiştiremez readonly -->
                         <AuthorizeView Roles="Employee">
                             <Authorized>
-                                <input type="text" class="form-control bg-light border-0" value="@currentEmployeeName" readonly />
+                                <input type="text" class="form-control border-0" value="@currentEmployeeName" readonly />
                             </Authorized>
                         </AuthorizeView>
                         <AuthorizeView Roles="Admin, Manager">
                             <Authorized>
-                                <select class="form-select bg-light border-0" @bind="newRequest.EmployeeId">
+                                <select class="form-select border-0" @bind="newRequest.EmployeeId">
                                     <option value="0">Personel Seçiniz...</option>
                                     @foreach (var emp in employeeList)
                                     {
@@ -50,14 +50,14 @@
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Avans Tutarı (TL)</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light border-0">₺</span>
-                            <input type="number" class="form-control bg-light border-0" @bind="newRequest.Amount" placeholder="Örn: 5000" />
+                            <span class="input-group-text border-0">₺</span>
+                            <input type="number" class="form-control border-0" @bind="newRequest.Amount" placeholder="Örn: 5000" />
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Taksit Sayısı</label>
-                        <select class="form-select bg-light border-0" @bind="newRequest.InstallmentCount">
+                        <select class="form-select border-0" @bind="newRequest.InstallmentCount">
                             <option value="1">Tek Seferde (1 Taksit)</option>
                             <option value="2">2 Taksit</option>
                             <option value="3">3 Taksit</option>
@@ -69,7 +69,7 @@
 
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Açıklama / Sebep</label>
-                        <textarea class="form-control bg-light border-0" rows="3" @bind="newRequest.Description" placeholder="Örn: Sağlık giderleri, okul masrafı..."></textarea>
+                        <textarea class="form-control border-0" rows="3" @bind="newRequest.Description" placeholder="Örn: Sağlık giderleri, okul masrafı..."></textarea>
                     </div>
 
                     @if (!string.IsNullOrEmpty(errorMessage))
@@ -89,13 +89,13 @@
         <!-- AVANS LİSTESİ -->
         <div class="col-md-8">
             <div class="card glass-card border-0 shadow-sm animate__animated animate__fadeInRight">
-                <div class="card-header bg-white border-0 py-3 fw-bold">
+                <div class="card-header border-0 py-3 fw-bold">
                     <i class="bi bi-list-ul me-2"></i>Geçmiş Talepler
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light small text-muted text-uppercase">
+                            <thead class="small text-muted text-uppercase">
                                 <tr>
                                     <th class="ps-4">Personel</th>
                                     <th>Tutar</th>
@@ -124,7 +124,7 @@
                                                 <div class="small text-muted">@request.RequestDate.ToShortDateString()</div>
                                             </td>
                                             <td>
-                                                <span class="fw-bold text-dark">@request.Amount.ToString("C0")</span>
+                                                <span class="fw-bold">@request.Amount.ToString("C0")</span>
                                             </td>
                                             <td>@request.InstallmentCount Taksit</td>
                                             <td>

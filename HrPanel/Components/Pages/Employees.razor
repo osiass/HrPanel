@@ -1,4 +1,4 @@
-﻿@page "/personeller"
+@page "/personeller"
 @attribute [Authorize]
 @attribute [Authorize(Roles = "Admin, Manager")]
 @using HrPanel.Models
@@ -28,7 +28,7 @@
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                                <span class="input-group-text border-end-0"><i class="bi bi-search"></i></span>
                                 <input type="text" class="form-control border-start-0" placeholder="İsim veya e-posta ile ara..." @bind="searchTerm" @bind:event="oninput" />
                             </div>
                         </div>
@@ -66,7 +66,7 @@
 
                                         <div class="mt-auto pt-3 border-top d-flex gap-2">
                                             @*logine atmaması için soft navigation butonu *@
-                                            <button class="btn btn-light btn-sm flex-grow-1 border" @onclick="() => GoToDetail(emp.Id)">
+                                            <button class="btn btn-sm flex-grow-1 border" @onclick="() => GoToDetail(emp.Id)">
                                                 <i class="bi bi-eye"></i> Detay
                                             </button>
                                             <button class="btn btn-outline-primary btn-sm flex-grow-1" @onclick="() => EditEmployee(emp)">
@@ -91,8 +91,8 @@
         @if (isEditing)
         {
             <div class="col-md-5 animate__animated animate__fadeInRight">
-                <div class="card custom-card border-0 shadow-lg bg-white sticky-top" style="top: 100px;">
-                    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <div class="card custom-card border-0 shadow-lg sticky-top" style="top: 100px;">
+                    <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                         <h5 class="fw-bold mb-0">@(newEmployee.Id == 0 ? "Personel Tanımla" : "Bilgileri Güncelle")</h5>
                         <button class="btn-close" @onclick="CloseForm"></button>
                     </div>
@@ -104,19 +104,19 @@
                         <div class="row g-3">
                             <div class="col-md-12">
                                 <label class="form-label small fw-bold">Tam Adı</label>
-                                <input type="text" class="form-control form-control-lg bg-light border-0" @bind="newEmployee.FullName" />
+                                <input type="text" class="form-control border-0" @bind="newEmployee.FullName" />
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">T.C. Kimlik No</label>
-                                <input type="text" class="form-control bg-light border-0" @bind="newEmployee.IdentityNumber" maxlength="11" />
+                                <input type="text" class="form-control border-0" @bind="newEmployee.IdentityNumber" maxlength="11" />
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">E-Posta</label>
-                                <input type="email" class="form-control bg-light border-0" @bind="newEmployee.Email" />
+                                <input type="email" class="form-control border-0" @bind="newEmployee.Email" />
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Departman</label>
-                                <select class="form-select bg-light border-0" @bind="newEmployee.DepartmentId">
+                                <select class="form-select border-0" @bind="newEmployee.DepartmentId">
                                     <option value="0">Seçiniz...</option>
                                     @foreach (var d in departmentList)
                                     {
@@ -126,7 +126,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Pozisyon</label>
-                                <select class="form-select bg-light border-0" @bind="newEmployee.PositionId">
+                                <select class="form-select border-0" @bind="newEmployee.PositionId">
                                     <option value="0">Seçiniz...</option>
                                     @foreach (var p in positionList)
                                     {
@@ -136,15 +136,15 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Maaş (TL)</label>
-                                <input type="number" class="form-control bg-light border-0" @bind="newEmployee.Salary" />
+                                <input type="number" class="form-control border-0" @bind="newEmployee.Salary" />
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Telefon</label>
-                                <input type="text" class="form-control bg-light border-0" @bind="newEmployee.Phone" placeholder="05xx..." />
+                                <input type="text" class="form-control border-0" @bind="newEmployee.Phone" placeholder="05xx..." />
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Sistem Yetki Rolü</label>
-                                <select class="form-select bg-light border-0" @bind="newEmployee.Role">
+                                <select class="form-select border-0" @bind="newEmployee.Role">
                                     @foreach (var role in Enum.GetValues<HrPanel.Models.EmployeeRole>())
                                     {
                                         @* MÜDÜR GİRİŞ YAPTIYSA ADMİN ROLÜNÜ GÖSTERME *@
@@ -155,7 +155,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Doğrudan Bağlı Olduğu Amir</label>
-                                <select class="form-select bg-light border-0" @bind="newEmployee.ManagerId">
+                                <select class="form-select border-0" @bind="newEmployee.ManagerId">
                                     <option value="">Amir Atanmamış</option>
                                     @foreach (var m in managerList.Where(x => x.Id != newEmployee.Id))
                                     {
@@ -165,7 +165,7 @@
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label small fw-bold">Ev Adresi</label>
-                                <textarea class="form-control bg-light border-0" rows="2" @bind="newEmployee.Address"></textarea>
+                                <textarea class="form-control border-0" rows="2" @bind="newEmployee.Address"></textarea>
                             </div>
                             <div class="col-md-12">
                                 <div class="form-check form-switch">

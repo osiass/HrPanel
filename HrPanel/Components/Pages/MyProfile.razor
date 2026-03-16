@@ -1,4 +1,4 @@
-﻿@page "/profilim"
+@page "/profilim"
 @attribute [Authorize]
 @using HrPanel.Models
 @using HrPanel.Services
@@ -25,7 +25,7 @@
         <div class="row">
             <!--ÖZET -->
             <div class="col-md-4">
-                <div class="card shadow-sm border-0 text-center p-4 mb-4 rounded-4 bg-white">
+                <div class="card shadow-sm border-0 text-center p-4 mb-4 rounded-4">
                     <img src="https://ui-avatars.com/api/?name=@myProfile.FullName&size=128&background=4e73df&color=fff"
                          class="rounded-circle shadow mb-3 mx-auto" width="100" />
                     <h4 class="fw-bold mb-1">@myProfile.FullName</h4>
@@ -39,12 +39,12 @@
                 </div>
 
                 @*Şifre Güncelleme *@
-                <div class="card shadow-sm border-0 rounded-4 bg-white mt-4">
+                <div class="card shadow-sm border-0 rounded-4 mt-4">
                     <div class="card-body p-4 text-start">
-                        <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-shield-lock me-2 text-primary"></i>Güvenlik Ayarları</h6>
+                        <h6 class="fw-bold mb-3"><i class="bi bi-shield-lock me-2 text-primary"></i>Güvenlik Ayarları</h6>
                         <div class="mb-3">
                             <label class="small text-muted fw-bold">YENİ ŞİFRE</label>
-                            <input type="password" class="form-control bg-light border-0" @bind="newPassword" placeholder="Yeni şifreniz" />
+                            <input type="password" class="form-control border-0" @bind="newPassword" placeholder="Yeni şifreniz" />
                         </div>
                         <button class="btn btn-dark btn-sm w-100 fw-bold py-2" @onclick="UpdatePassword">Şifreyi Güncelle</button>
 
@@ -60,17 +60,17 @@
 
             <!--DETAYLI SEKMELER -->
             <div class="col-md-8">
-                <div class="card shadow-sm border-0 rounded-4 bg-white">
+                <div class="card shadow-sm border-0 rounded-4">
                     <div class="card-header bg-transparent border-0 pt-3">
                         <ul class="nav nav-pills card-header-pills px-3">
                             <li class="nav-item">
-                                <button class="nav-link @(activeTab == "izin" ? "active shadow-sm" : "text-dark")" @onclick='() => activeTab = "izin"'>İzinlerim</button>
+                                <button class="nav-link @(activeTab == "izin" ? "active shadow-sm" : "")" @onclick='() => activeTab = "izin"'>İzinlerim</button>
                             </li>
                             <li class="nav-item">
-                                <button class="nav-link @(activeTab == "ekip" ? "active shadow-sm" : "text-dark")" @onclick='() => activeTab = "ekip"'>Organizasyon</button>
+                                <button class="nav-link @(activeTab == "ekip" ? "active shadow-sm" : "")" @onclick='() => activeTab = "ekip"'>Organizasyon</button>
                             </li>
                             <li class="nav-item">
-                                <button class="nav-link @(activeTab == "dosya" ? "active shadow-sm" : "text-dark")" @onclick='() => activeTab = "dosya"'>Belgelerim</button>
+                                <button class="nav-link @(activeTab == "dosya" ? "active shadow-sm" : "")" @onclick='() => activeTab = "dosya"'>Belgelerim</button>
                             </li>
                         </ul>
                     </div>
@@ -91,7 +91,7 @@
                                         <tr>
                                             <td>@leave.StartDate.ToShortDateString()</td>
                                             <td>@((leave.EndDate - leave.StartDate).Days) Gün</td>
-                                            <td><span class="badge bg-light text-dark border">@leave.Status</span></td>
+                                            <td><span class="badge bg-light border">@leave.Status</span></td>
                                         </tr>
                                     }
                                 </tbody>
@@ -100,7 +100,7 @@
                         else if (activeTab == "ekip")
                         {
                             <h6 class="fw-bold mb-3">Yöneticim</h6>
-                            <p class="p-3 bg-light rounded">@(myProfile.Manager?.FullName ?? "Üst Yönetici")</p>
+                            <p class="p-3 rounded">@(myProfile.Manager?.FullName ?? "Üst Yönetici")</p>
 
                             @if (myProfile.Subordinates.Any())
                             {

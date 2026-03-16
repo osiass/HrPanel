@@ -1,7 +1,12 @@
 @inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Authorization
+@using HrPanel.Services
+@inject ThemeService ThemeService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+@implements IDisposable
 
-<div class="page">
+<div class="page" data-theme="@ThemeService.CurrentTheme">
     <div class="sidebar">
         <NavMenu />
     </div>
@@ -9,17 +14,25 @@
     <main class="main">
         <header class="top-bar">
             <div class="d-flex align-items-center">
-                <button class="btn btn-link text-dark me-3 d-md-none">
+                <button class="btn btn-link me-3 d-md-none">
                     <i class="bi bi-list fs-3"></i>
                 </button>
                 <h5 class="mb-0 fw-bold text-secondary">IK Kurumsal Portal</h5>
             </div>
 
             <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-outline-secondary rounded-circle p-2 d-flex align-items-center justify-content-center" 
+                        style="width: 40px; height: 40px;" @onclick="ToggleTheme" title="Tema Değiştir">
+                    <i class="bi @(ThemeService.CurrentTheme == "light" ? "bi-moon-stars-fill" : "bi-sun-fill")"></i>
+                </button>
+                <button class="btn btn-outline-danger rounded-circle p-2 d-flex align-items-center justify-content-center" 
+                        style="width: 40px; height: 40px;" @onclick="Logout" title="Çıkış Yap">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
                 <AuthorizeView>
                     <Authorized>
                         <div class="text-end me-3 d-none d-sm-block">
-                            <div class="fw-bold text-dark">@context.User.Identity?.Name</div>
+                            <div class="fw-bold">@context.User.Identity?.Name</div>
                             <small class="text-muted">Panel</small>
                         </div>
                         <div class="dropdown">
@@ -36,3 +49,36 @@
         </div>
     </main>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        ThemeService.OnThemeChanged += StateHasChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ThemeService.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        await ThemeService.ToggleThemeAsync();
+    }
+
+    private async Task Logout()
+    {
+        var authProvider = (AuthStateProvider)AuthStateProvider;
+        await authProvider.NotifyUserLogout();
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= StateHasChanged;
+    }
+}

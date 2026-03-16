@@ -21,6 +21,256 @@
     /* Derinlik veren kart gölgesi */
 }
 
+/*dark mod*/
+[data-theme='dark'] {
+    --hr-bg-dark: #0f1115;
+    --hr-bg-light: #1a1c23;
+    --hr-primary: #6366f1;
+    --hr-primary-hover: #818cf8;
+    --hr-text-main: #f3f4f6;
+    --hr-text-muted: #9ca3af;
+    --hr-card-bg: #24262d;
+    --hr-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+
+    --bs-body-bg: var(--hr-bg-light);
+    --bs-body-color: var(--hr-text-main);
+    --bs-tertiary-bg: #2d2f36;
+
+    /*Global override */
+    --bs-card-bg: var(--hr-card-bg);
+    --bs-card-color: var(--hr-text-main);
+    --bs-card-cap-bg: rgba(255, 255, 255, 0.03);
+    --bs-border-color: rgba(255, 255, 255, 0.1);
+    --bs-list-group-bg: var(--hr-card-bg);
+    --bs-list-group-color: var(--hr-text-main);
+    --bs-list-group-border-color: rgba(255, 255, 255, 0.1);
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--hr-text-main);
+}
+
+[data-theme='dark'] .card {
+    background-color: var(--hr-card-bg) !important;
+    color: var(--hr-text-main) !important;
+}
+
+[data-theme='dark'] .card-header {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--hr-text-main) !important;
+}
+
+[data-theme='dark'] .table thead.table-light {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .table thead.table-light th {
+    background-color: transparent !important;
+    color: var(--hr-text-main) !important;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .table td {
+    color: var(--hr-text-main) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme='dark'] .badge.bg-light {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--hr-text-main) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme='dark'] .list-group-item {
+    background-color: transparent !important;
+    color: var(--hr-text-main) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme='dark'] .top-bar {
+    background: var(--hr-card-bg) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme='dark'] .bg-white,
+[data-theme='dark'] .bg-light {
+    background-color: var(--hr-card-bg) !important;
+    color: var(--hr-text-main) !important;
+}
+
+[data-theme='dark'] .text-dark,
+[data-theme='dark'] h1,
+[data-theme='dark'] h2,
+[data-theme='dark'] h3,
+[data-theme='dark'] h4,
+[data-theme='dark'] h5,
+[data-theme='dark'] h6,
+[data-theme='dark'] p,
+[data-theme='dark'] label {
+    color: var(--hr-text-main) !important;
+}
+
+[data-theme='dark'] .text-secondary,
+[data-theme='dark'] .text-muted {
+    color: #94a3b8 !important;
+}
+
+[data-theme='dark'] .btn-light {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--hr-text-main) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .btn-light:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .input-group-text {
+    background-color: #2d2f36 !important;
+    color: var(--hr-text-main) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .border {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .sticky-top {
+    background-color: var(--hr-bg-light) !important;
+}
+
+[data-theme='dark'] .modal-content {
+    background-color: var(--hr-card-bg) !important;
+    color: var(--hr-text-main) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Modal close button */
+[data-theme='dark'] .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Nav pills / tabs */
+[data-theme='dark'] .nav-link {
+    color: var(--hr-text-main) !important;
+}
+
+[data-theme='dark'] .nav-pills .nav-link.active,
+[data-theme='dark'] .nav-link.active {
+    background-color: var(--hr-primary) !important;
+    color: #fff !important;
+}
+
+/* Table thead */
+[data-theme='dark'] thead {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--hr-text-main) !important;
+}
+
+[data-theme='dark'] thead th {
+    color: var(--hr-text-main) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Dropdown menus */
+[data-theme='dark'] .dropdown-menu {
+    background-color: var(--hr-card-bg) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .dropdown-item {
+    color: var(--hr-text-main) !important;
+}
+
+[data-theme='dark'] .dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Alert (non-colored) */
+[data-theme='dark'] .alert-danger {
+    background-color: rgba(220, 38, 38, 0.15) !important;
+    color: #fca5a5 !important;
+    border-color: rgba(220, 38, 38, 0.3) !important;
+}
+
+[data-theme='dark'] .alert-success {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    color: #6ee7b7 !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Dashed borders (upload areas) */
+[data-theme='dark'] .border-dashed {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Placeholder text */
+[data-theme='dark'] .form-control::placeholder {
+    color: #6b7280 !important;
+}
+
+
+[data-theme='dark'] .border-bottom,
+[data-theme='dark'] .border-top,
+[data-theme='dark'] .border-end,
+[data-theme='dark'] .border-start {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Kanban  */
+[data-theme='dark'] .kanban-column {
+    background-color: var(--hr-card-bg) !important;
+    color: var(--hr-text-main) !important;
+}
+
+/* Calendar  */
+[data-theme='dark'] .calendar-header-row {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme='dark'] .calendar-day-cell {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Tooltip*/
+[data-theme='dark'] .tooltip-inner {
+    background-color: var(--hr-card-bg) !important;
+    color: var(--hr-text-main) !important;
+}
+
+[data-theme='dark'] .small.text-muted,
+[data-theme='dark'] small {
+    color: #94a3b8 !important;
+}
+
+[data-theme='dark'] .badge.bg-warning {
+    color: #1a1c23 !important;
+}
+
+[data-theme='dark'] .badge.bg-info {
+    color: #1a1c23 !important;
+}
+
+[data-theme='dark'] .glass-card {
+    background: rgba(36, 38, 45, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .sidebar .text-uppercase {
+    color: #cbd5e1 !important;
+
+}
+
+[data-theme='dark'] .form-control,
+[data-theme='dark'] .form-select,
+[data-theme='dark'] .form-control:focus {
+    background-color: #2d2f36 !important;
+    color: #f3f4f6 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .form-control[readonly] {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
 body {
     background-color: var(--hr-bg-light);
     /* Tüm sitenin arka planı açık gri */
@@ -142,7 +392,7 @@ h1:focus {
 
 /* KART TASARIMLARI (FAZ 2) */
 .employee-card {
-    background: #ffffff;
+    background: var(--hr-card-bg);
     border-radius: 16px;
     border: none !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

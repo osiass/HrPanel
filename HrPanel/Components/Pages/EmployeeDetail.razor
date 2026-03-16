@@ -1,4 +1,4 @@
-﻿@page "/personel/{Id:int}"
+@page "/personel/{Id:int}"
 @attribute [Authorize]
 @using HrPanel.Models
 @using HrPanel.Services
@@ -26,7 +26,7 @@
         <div class="card shadow-sm border-0 mb-4 overflow-hidden">
             <div class="card-body p-0">
                 <div class="row g-0">
-                    <div class="col-md-2 bg-light d-flex align-items-center justify-content-center p-4 border-end">
+                    <div class="col-md-2 d-flex align-items-center justify-content-center p-4 border-end">
                         <img src="https://ui-avatars.com/api/?name=@employee.FullName&size=128&background=random"
                              class="rounded-circle shadow" width="120" />
                     </div>
@@ -50,7 +50,7 @@
 
         <!-- SEKMELİ İÇERİK -->
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-white">
+            <div class="card-header">
                 <ul class="nav nav-tabs card-header-tabs" id="employeeTabs">
                     <li class="nav-item">
                         <button class="nav-link @(activeTab == "genel" ? "active fw-bold" : "")" @onclick='() => activeTab = "genel"'>Genel Bilgiler</button>
@@ -140,7 +140,7 @@
                 else if (activeTab == "org")
                 {
                     @* organşzasyon*@
-                    <div class="p-3 bg-light rounded">
+                    <div class="p-3 rounded">
                         <h6 class="fw-bold"><i class="bi bi-person-badge"></i> Doğrudan Bağlı Olduğu Amir</h6>
                         <p>@(employee.Manager?.FullName ?? "Atanmamış")</p>
                         <hr />
@@ -216,7 +216,7 @@
                                             <td>@adv.InstallmentCount</td>
                                             <td>@adv.RequestDate.ToShortDateString()</td>
                                             <td>
-                                                <span class="badge @(adv.Status == AdvanceStatus.Approved ? "bg-success" : (adv.Status == AdvanceStatus.Pending ? "bg-warning text-dark" : "bg-danger"))">
+                                                <span class="badge @(adv.Status == AdvanceStatus.Approved ? "bg-success" : (adv.Status == AdvanceStatus.Pending ? "bg-warning" : "bg-danger"))">
                                                     @adv.Status
                                                 </span>
                                             </td>
@@ -246,7 +246,7 @@
 
                     @if (showEducationForm)
                     {
-                        <div class="card bg-light border-0 mb-4 animate__animated animate__fadeInDown">
+                        <div class="card border-0 mb-4 animate__animated animate__fadeInDown">
                             <div class="card-body">
                                 <h6 class="fw-bold small mb-3">Yeni Eğitim Kaydı Ekle</h6>
                                 <div class="row g-3">
@@ -302,10 +302,10 @@
                                     @foreach (var edu in educationList)
                                     {
                                         <tr>
-                                            <td class="fw-bold text-dark">@edu.CourseName</td>
+                                            <td class="fw-bold">@edu.CourseName</td>
                                             <td>@edu.Provider</td>
                                             <td>
-                                                <span class="badge @(edu.Status == "Tamamlandı" ? "bg-success" : "bg-warning text-dark")">@edu.Status</span>
+                                                <span class="badge @(edu.Status == "Tamamlandı" ? "bg-success" : "bg-warning")">@edu.Status</span>
                                             </td>
                                             <td>@(edu.CompletionDate?.ToShortDateString() ?? "-")</td>
                                             <AuthorizeView Roles="Admin, Manager">
@@ -327,7 +327,7 @@
                 else if (activeTab == "belgeler")
                 {
                     @*belge yükleme alanı*@
-                    <div class="upload-area p-4 border border-2 border-dashed rounded text-center bg-light mb-4">
+                    <div class="upload-area p-4 border border-2 border-dashed rounded text-center mb-4">
                         <i class="bi bi-cloud-arrow-up fs-2 text-primary"></i>
                         <h6 class="mt-2">Dosya Yükle</h6>
                         <InputFile OnChange="HandleFileSelected" class="form-control form-control-sm mt-2 mx-auto" style="max-width:300px" />
@@ -498,8 +498,8 @@
 
     private string GetStatusBadgeClass(LeaveStatus status) => status switch
     {
-        LeaveStatus.PendingManager => "bg-warning text-dark",
-        LeaveStatus.PendingHR => "bg-info text-dark",
+        LeaveStatus.PendingManager => "bg-warning",
+        LeaveStatus.PendingHR => "bg-info",
         LeaveStatus.Approved => "bg-success",
         LeaveStatus.Rejected => "bg-danger",
         _ => "bg-secondary"
